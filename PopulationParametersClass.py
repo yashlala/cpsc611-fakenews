@@ -1,5 +1,7 @@
-'''Description'''
+##############################################################
 # Contains the various parameters that a population will have
+# Copyright (C) 2023  Matthew Jones
+##############################################################
 
 class PopulationParameters:
     def __init__(self):

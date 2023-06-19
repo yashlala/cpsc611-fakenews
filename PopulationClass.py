@@ -1,5 +1,6 @@
 #########################################
 # Creates a network with a given topology
+# Copyright (C) 2023  Matthew Jones
 #########################################
 
 import pandas as pd

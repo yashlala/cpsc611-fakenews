@@ -1,6 +1,7 @@
 ########################################################
 # Creates a random population and plays the game for a given number of 
 # time steps or until fixation is achieved
+# Copyright (C) 2023  Matthew Jones
 ########################################################
 
 #import multiprocessing

@@ -3,6 +3,7 @@
 # plays the game for a given number of 
 # time steps or until fixation is achieved
 # Uses multiprocessing to utilize multiple cores simultaneously
+# Copyright (C) 2023  Matthew Jones
 ########################################################
 
 import multiprocessing

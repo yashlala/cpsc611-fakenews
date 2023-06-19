@@ -1,4 +1,5 @@
 # Load twitter follower network data
+# Copyright (C) 2023  Matthew Jones
 
 import numpy as np
 import multiprocessing
@@ -11,6 +12,7 @@ def bet_subset(subset):
     numNodes = 404719
     numEdges = 713319
     
+    # soc-twitter-follows2.mtx is the original dataset (soc-twitter-follows.mtx from https://networkrepository.com/soc-twitter-follows.php) with the preamble removed for easier text parsing
     edgeList = np.loadtxt('soc-twitter-follows2.mtx', dtype=int)
     
     # create adjacency list

@@ -1,6 +1,8 @@
-'''Description'''
+###############################################
 # Class for each individual in a population. 
 # Contains information about strategy
+# Copyright (C) 2023  Matthew Jones
+################################################
 
 
 class Player:
