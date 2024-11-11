@@ -30,15 +30,15 @@ from PopulationClass import Population
 #c = 5
 
 # Grid Population
-m1 = 30
-m2 = 30
+m1 = 10
+m2 = 10
 n = m1*m2
 k = 8
 p = 0
 
 # All Population Structures
-fcs = 180
-maxtime = 2000
+fcs = 1
+maxtime = 100
 psdetection = 20
 
 
@@ -48,11 +48,11 @@ psdetection = 20
 ###################################
 
 
-pop = Population('grid', p=0)
+pop = Population('random', n=20, p=0.4)
 
 # Create initial strategies
 pop.preset_random()
-pop.add_n_factcheckers(fcs)
+pop.add_n_factcheckers(1)
 
 # Build your graph
 G=nx.from_pandas_edgelist(pop.edgelist, 'lowindx', 'highindx')
