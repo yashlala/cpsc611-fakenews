@@ -16,94 +16,126 @@ from PopulationParametersClass import PopulationParameters
 
 
 class Population:
-    def __init__(self, topology, n=900, c=4, p=0.1, m1=30, m2=30, k=8):
-        if topology == "smallworld":
-            self._init_smallworld_topology(topology, n, c, p, m1, m2, k)
-        elif topology == "grid":
-            self._init_grid_topology(topology, n, c, p, m1, m2, k)
+    def __init__(
+        self,
+        topology: str,
+        pop_size=300,
+        c=4,
+        p=0.1,
+        grid_width=10,
+        grid_height=10,
+        node_degree=8,
+    ):
+        """Initialize a population.
+
+        Params:
+            - `pop_size`: the number of individuals in the population.
+            - `grid_width`: only used for 'grid' topology.
+            - `grid_height`: only used for 'grid' topology.
+            - `p`: for 'grid' toplogy: probability of adding additional edges.
+
+            - `c`: for "scalefree" topology only. Sets "starting degree".
+            - `node_degree`: only applies to 'regular' and 'grid' topology.
+
+        TODO combine C and node_degree.
+        """
+
+        if topology == "grid":
+            self._init_grid_topology(grid_width, grid_height, p, node_degree)
         elif topology == "random":
-            self._init_random_topology(topology, n, c, p, m1, m2, k)
+            self._init_random_topology(pop_size, p)
         elif topology == "scalefree":
-            self._init_scalefree_topology(topology, n, c, p, m1, m2, k)
+            self._init_scalefree_topology(pop_size, c)
         elif topology == "regular":
-            self._init_scalefree_topology(topology, n, c, p, m1, m2, k)
+            self._init_regular_topology(pop_size, num_neighbors=node_degree)
+        elif topology == "smallworld":
+            self._init_smallworld_topology(pop_size, neighbors=c, p=p)
         elif topology == "twitter":
-            self._init_twitter_topology(topology, n, c, p, m1, m2, k)
+            self._init_twitter_topology()
         else:
             raise ValueError("Unacceptable network topology")
 
-    def _init_grid_topology(self, topology, n, c, p, m1, m2, k):
-        # Creates an m1 by m2 population on a rectangular grid
-        # m1 and m2 must both be >= 3
-        # k is the degree and will be either 4 or 8
-        # Adds additional edges with prob p for each edge in grid
+    def _init_grid_topology(self, grid_width, grid_height, p, k):
+        """Creates an height by width population on a rectangular grid.
+
+        height and width must both be >= 3
+        k is the degree and will be either 4 or 8 (TODO degree of what?)
+        Adds additional edges with prob p for each edge in grid
+        """
         if not (k == 4 or k == 8):
             raise ValueError("Degree must be 4 or 8")
-        self.popsize = m1 * m2
-        self.parameters = PopulationParameters()
+        self.pop_size = grid_width * grid_height
+        self.pop_params = PopulationParameters()
         self.players = []
-        self.adjlist = []
+        self.adj_list = []
+
+        if grid_width < 3 or grid_height < 3:
+            raise Exception("Grid must be at least 3x3!")
 
         # Create the players in the population, empty edge lists
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             player = Player()
             self.players.append(player)
-            self.adjlist.append([])
+            self.adj_list.append([])
 
         # Create the edgelist, adjacency list, adjacency matrix
         # self.adjlist will be used for computation and updates
         # self.edgelist will be used for visualization to pass to networkx
         # self.adjmat will be used for eigenvector centrality
-        zeros = [0] * self.popsize
-        self.adjmat = np.asarray([zeros] * self.popsize)
+        zeros = [0] * self.pop_size
+        self.adjmat = np.asarray([zeros] * self.pop_size)
 
         templow = []
         temphigh = []
 
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             # Add the two individuals directly above and below
-            self.adjlist[indx].append((indx + m2) % self.popsize)
-            self.adjlist[indx].append((indx - m2) % self.popsize)
+            self.adj_list[indx].append((indx + grid_height) % self.pop_size)
+            self.adj_list[indx].append((indx - grid_height) % self.pop_size)
             # Add the individuals to the right
-            if (indx + 1) % m2 == 0:
-                self.adjlist[indx].append((indx - m2 + 1) % self.popsize)
+            if (indx + 1) % grid_height == 0:
+                self.adj_list[indx].append((indx - grid_height + 1) % self.pop_size)
                 if k == 8:
-                    self.adjlist[indx].append((indx - 2 * m2 + 1) % self.popsize)
-                    self.adjlist[indx].append((indx + 1) % self.popsize)
+                    self.adj_list[indx].append(
+                        (indx - 2 * grid_height + 1) % self.pop_size
+                    )
+                    self.adj_list[indx].append((indx + 1) % self.pop_size)
             else:
-                self.adjlist[indx].append((indx + 1) % self.popsize)
+                self.adj_list[indx].append((indx + 1) % self.pop_size)
                 if k == 8:
-                    self.adjlist[indx].append((indx - m2 + 1) % self.popsize)
-                    self.adjlist[indx].append((indx + m2 + 1) % self.popsize)
+                    self.adj_list[indx].append((indx - grid_height + 1) % self.pop_size)
+                    self.adj_list[indx].append((indx + grid_height + 1) % self.pop_size)
             # Add the individuals to the left
-            if indx % m2 == 0:
-                self.adjlist[indx].append((indx + m2 - 1) % self.popsize)
+            if indx % grid_height == 0:
+                self.adj_list[indx].append((indx + grid_height - 1) % self.pop_size)
                 if k == 8:
-                    self.adjlist[indx].append((indx - 1) % self.popsize)
-                    self.adjlist[indx].append((indx + 2 * m2 - 1) % self.popsize)
+                    self.adj_list[indx].append((indx - 1) % self.pop_size)
+                    self.adj_list[indx].append(
+                        (indx + 2 * grid_height - 1) % self.pop_size
+                    )
             else:
-                self.adjlist[indx].append((indx - 1) % self.popsize)
+                self.adj_list[indx].append((indx - 1) % self.pop_size)
                 if k == 8:
-                    self.adjlist[indx].append((indx - m2 - 1) % self.popsize)
-                    self.adjlist[indx].append((indx + m2 - 1) % self.popsize)
+                    self.adj_list[indx].append((indx - grid_height - 1) % self.pop_size)
+                    self.adj_list[indx].append((indx + grid_height - 1) % self.pop_size)
 
         # Add the additional edges
         # Add edge with prob p for all self.popsize*k/2 edges in grid
-        for edge in range(int(self.popsize * k / 2)):
+        for edge in range(int(self.pop_size * k / 2)):
             r = rand.random()
             if r < p:
                 new = False
                 while new == False:
-                    indx = rand.randint(0, self.popsize - 1)
-                    nindx = rand.randint(0, self.popsize - 1)
-                    if not indx == nindx and not indx in self.adjlist[nindx]:
+                    indx = rand.randint(0, self.pop_size - 1)
+                    nindx = rand.randint(0, self.pop_size - 1)
+                    if not indx == nindx and not indx in self.adj_list[nindx]:
                         new = True
-                self.adjlist[indx].append(nindx)
-                self.adjlist[nindx].append(indx)
+                self.adj_list[indx].append(nindx)
+                self.adj_list[nindx].append(indx)
 
         # Create the adjmat and edgelist
-        for indx in range(self.popsize):
-            for nindx in self.adjlist[indx]:
+        for indx in range(self.pop_size):
+            for nindx in self.adj_list[indx]:
                 self.adjmat[indx, nindx] = 1
                 if indx < nindx:
                     templow.append(indx)
@@ -115,43 +147,43 @@ class Population:
 
         # Create the degree list
         self.degree = []
-        for indx in range(self.popsize):
-            self.degree.append(len(self.adjlist[indx]))
+        for indx in range(self.pop_size):
+            self.degree.append(len(self.adj_list[indx]))
 
-    def _init_random_topology(self, topology, n, c, p, m1, m2, k):
+    def _init_random_topology(self, pop_size, p):
         # Creates a population on a random network.
         # The network has n individuals (vertices),
         # probability p connecting any two vertices
-        self.popsize = n
-        self.edgeprob = p
-        self.parameters = PopulationParameters()
+        self.pop_size = pop_size
+        self.edge_prob = p
+        self.pop_params = PopulationParameters()
 
         self.players = []
-        self.adjlist = []
+        self.adj_list = []
 
         # Create the players in the population, empty edge lists
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             player = Player()
             self.players.append(player)
-            self.adjlist.append([])
+            self.adj_list.append([])
 
         # Create the edgelist, adjacency list, adjacency matrix
         # self.adjlist will be used for computation and updates
         # self.edgelist will be used for visualization to pass to networkx
         # self.adjmat will be used for eigenvector centrality
-        zeros = [0] * self.popsize
-        self.adjmat = np.asarray([zeros] * self.popsize)
+        zeros = [0] * self.pop_size
+        self.adjmat = np.asarray([zeros] * self.pop_size)
 
         templow = []
         temphigh = []
-        for indx in range(self.popsize - 1):
-            for temp in range(self.popsize - indx - 1):
+        for indx in range(self.pop_size - 1):
+            for temp in range(self.pop_size - indx - 1):
                 nindx = temp + indx + 1
                 # Decide if there is an edge between indx and nindx
                 r = rand.random()
-                if r < self.edgeprob:
-                    self.adjlist[indx].append(nindx)
-                    self.adjlist[nindx].append(indx)
+                if r < self.edge_prob:
+                    self.adj_list[indx].append(nindx)
+                    self.adj_list[nindx].append(indx)
                     templow.append(indx)
                     temphigh.append(nindx)
                     self.adjmat[indx, nindx] = 1
@@ -162,36 +194,37 @@ class Population:
 
         # Create the degree list
         self.degree = []
-        for indx in range(self.popsize):
-            self.degree.append(len(self.adjlist[indx]))
+        for indx in range(self.pop_size):
+            self.degree.append(len(self.adj_list[indx]))
 
-    def _init_scalefree_topology(self, topology, n, c, p, m1, m2, k):
-        # Creates a population of n players with a scale-free degree dist
+    def _init_scalefree_topology(self, pop_size, starting_degree):
+        # Creates a population of pop_size players with a scale-free degree dist
         # each new individual has starting degree c
-        self.popsize = n
-        self.newdegree = c
-        self.parameters = PopulationParameters()
+
+        self.pop_size = pop_size
+        self.newdegree = starting_degree
+        self.pop_params = PopulationParameters()
 
         self.players = []
-        self.adjlist = []
+        self.adj_list = []
         self.degree = []
 
         # Create the players in the population, empty edge lists
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             player = Player()
             self.players.append(player)
-            self.adjlist.append([])
+            self.adj_list.append([])
             self.degree.append(0)
 
         # cumulative degree list, needed to choose proportional to degree
-        cdegree = [0] * self.popsize
+        cdegree = [0] * self.pop_size
 
         # Create the edgelist, adjacency list, adjacency matrix
         # self.adjlist will be used for computation and updates
         # self.edgelist will be used for visualization to pass to networkx
         # self.adjmat will be used for eigenvector centrality
-        zeros = [0] * self.popsize
-        self.adjmat = np.asarray([zeros] * self.popsize)
+        zeros = [0] * self.pop_size
+        self.adjmat = np.asarray([zeros] * self.pop_size)
 
         templow = []
         temphigh = []
@@ -199,62 +232,62 @@ class Population:
         # Start with a small complete network
         for indx in range(self.newdegree):
             for nindx in range(indx + 1, self.newdegree):
-                self.adjlist[indx].append(nindx)
+                self.adj_list[indx].append(nindx)
                 self.degree[indx] += 1
-                for place in range(indx, self.popsize):
+                for place in range(indx, self.pop_size):
                     cdegree[place] += 1
-                self.adjlist[nindx].append(indx)
+                self.adj_list[nindx].append(indx)
                 self.degree[nindx] += 1
-                for place in range(nindx, self.popsize):
+                for place in range(nindx, self.pop_size):
                     cdegree[place] += 1
                 templow.append(indx)
                 temphigh.append(nindx)
 
         # Now begin adding vertices
-        for indx in range(self.newdegree, self.popsize):
+        for indx in range(self.newdegree, self.pop_size):
             edges = 0
-            while edges < c:
+            while edges < starting_degree:
                 # find a new vertex to connect to indx
                 r = rand.random()
-                for nindx in range(self.popsize):
-                    if cdegree[nindx] / cdegree[self.popsize - 1] > r:
+                for nindx in range(self.pop_size):
+                    if cdegree[nindx] / cdegree[self.pop_size - 1] > r:
                         # nindx is the selected vertex
                         break
                 # test not already neighbors or the same vertex
-                if not (indx in self.adjlist[nindx]) and (indx != nindx):
-                    self.adjlist[indx].append(nindx)
+                if not (indx in self.adj_list[nindx]) and (indx != nindx):
+                    self.adj_list[indx].append(nindx)
                     self.degree[indx] += 1
-                    for place in range(indx, self.popsize):
+                    for place in range(indx, self.pop_size):
                         cdegree[place] += 1
-                    self.adjlist[nindx].append(indx)
+                    self.adj_list[nindx].append(indx)
                     self.degree[nindx] += 1
-                    for place in range(nindx, self.popsize):
+                    for place in range(nindx, self.pop_size):
                         cdegree[place] += 1
                     templow.append(nindx)
                     temphigh.append(indx)
                     edges += 1
 
         # Create the adjmat and edgelist
-        for indx in range(self.popsize):
-            for nindx in self.adjlist[indx]:
+        for indx in range(self.pop_size):
+            for nindx in self.adj_list[indx]:
                 self.adjmat[indx, nindx] = 1
 
         self.edgelist = pd.DataFrame()
         self.edgelist["lowindx"] = templow
         self.edgelist["highindx"] = temphigh
 
-    def _init_regular_topology(self, topology, n, c, p, m1, m2, k):
+    def _init_regular_topology(self, pop_size, num_neighbors):
         # Creates a population of n individuals
         # Each individual has k neighbors
-        self.popsize = n
-        self.degree = [k] * self.popsize
-        self.parameters = PopulationParameters()
+        self.pop_size = pop_size
+        self.degree = [num_neighbors] * self.pop_size
+        self.pop_params = PopulationParameters()
 
         self.players = []
-        self.adjlist = []
+        self.adj_list = []
 
         # Create the players in the population
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             player = Player()
             self.players.append(player)
 
@@ -262,8 +295,8 @@ class Population:
         # self.adjlist will be used for computation and updates
         # self.edgelist will be used for visualization to pass to networkx
         # self.adjmat will be used for eigenvector centrality
-        zeros = [0] * self.popsize
-        self.adjmat = np.asarray([zeros] * self.popsize)
+        zeros = [0] * self.pop_size
+        self.adjmat = np.asarray([zeros] * self.pop_size)
 
         templow = []
         temphigh = []
@@ -275,20 +308,20 @@ class Population:
             attempts += 1
             # print(f'Attempt number: {attempts}')
             simple = True
-            self.adjlist = [[] for i in range(self.popsize)]
+            self.adj_list = [[] for i in range(self.pop_size)]
             stubs = []
-            for indx in range(self.popsize):
-                stubs += [indx] * k
+            for indx in range(self.pop_size):
+                stubs += [indx] * num_neighbors
 
             while stubs:
                 stub1 = stubs.pop(rand.randint(0, len(stubs) - 1))
                 stub2 = stubs.pop(rand.randint(0, len(stubs) - 1))
-                self.adjlist[stub1].append(stub2)
-                self.adjlist[stub2].append(stub1)
+                self.adj_list[stub1].append(stub2)
+                self.adj_list[stub2].append(stub1)
 
             # Test if the new network is simple.
-            for indx in range(self.popsize):
-                nbrs = self.adjlist[indx]
+            for indx in range(self.pop_size):
+                nbrs = self.adj_list[indx]
                 if len(nbrs) != len(set(nbrs)):
                     simple = False
                     break
@@ -299,8 +332,8 @@ class Population:
         # print('Simple!')
 
         # Create the adjacency matrix, edge list
-        for indx in range(self.popsize):
-            for nindx in self.adjlist[indx]:
+        for indx in range(self.pop_size):
+            for nindx in self.adj_list[indx]:
                 self.adjmat[indx, nindx] = 1
                 if indx < nindx:
                     templow.append(indx)
@@ -310,53 +343,55 @@ class Population:
         self.edgelist["lowindx"] = templow
         self.edgelist["highindx"] = temphigh
 
-    def _init_smallworld_topology(self, topology, n, c, p, m1, m2, k):
+    def _init_smallworld_topology(self, pop_size, neighbors, p):
         # Creates a population on a small world network
         # In the circle, each individual has c neighbors
         # For each edge in the circle (0.5nc), add random shortcut with prob p
-        self.popsize = n
-        self.circleneighbors = c
+        self.pop_size = pop_size
+        self.circleneighbors = neighbors
         self.shortcutprob = p
-        self.parameters = PopulationParameters()
+        self.pop_params = PopulationParameters()
 
         self.players = []
-        self.adjlist = []
+        self.adj_list = []
 
         # Create the players in the population, empty edge lists
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             player = Player()
             self.players.append(player)
-            self.adjlist.append([])
+            self.adj_list.append([])
 
         # Create the edgelist, adjacency list, adjacency matrix
         # self.adjlist will be used for computation and updates
         # self.edgelist will be used for visualization to pass to networkx
         # self.adjmat will be used for eigenvector centrality
-        zeros = [0] * self.popsize
-        self.adjmat = np.asarray([zeros] * self.popsize)
+        zeros = [0] * self.pop_size
+        self.adjmat = np.asarray([zeros] * self.pop_size)
 
         templow = []
         temphigh = []
 
         # First, the circle
-        rellist = list(range(int(-c / 2), 0)) + list(range(1, int(c / 2 + 1)))
-        for indx in range(self.popsize):
+        rellist = list(range(int(-neighbors / 2), 0)) + list(
+            range(1, int(neighbors / 2 + 1))
+        )
+        for indx in range(self.pop_size):
             for rel in rellist:
-                nindx = (indx + rel) % self.popsize
-                self.adjlist[indx].append(nindx)
+                nindx = (indx + rel) % self.pop_size
+                self.adj_list[indx].append(nindx)
                 if indx < nindx:
                     templow.append(indx)
                     temphigh.append(nindx)
 
         # Now the shortcuts
-        for iteration in range(int(0.5 * self.popsize * self.circleneighbors)):
+        for iteration in range(int(0.5 * self.pop_size * self.circleneighbors)):
             r = rand.random()
             if r < self.shortcutprob:
-                indx = rand.randint(0, self.popsize - 1)
-                nindx = rand.randint(0, self.popsize - 1)
-                if not (nindx in self.adjlist[indx]) and not (nindx == indx):
-                    self.adjlist[indx].append(nindx)
-                    self.adjlist[nindx].append(indx)
+                indx = rand.randint(0, self.pop_size - 1)
+                nindx = rand.randint(0, self.pop_size - 1)
+                if not (nindx in self.adj_list[indx]) and not (nindx == indx):
+                    self.adj_list[indx].append(nindx)
+                    self.adj_list[nindx].append(indx)
                     if indx < nindx:
                         templow.append(indx)
                         temphigh.append(nindx)
@@ -365,8 +400,8 @@ class Population:
                         temphigh.append(indx)
 
         # Create the adjmat and edgelist
-        for indx in range(self.popsize):
-            for nindx in self.adjlist[indx]:
+        for indx in range(self.pop_size):
+            for nindx in self.adj_list[indx]:
                 self.adjmat[indx, nindx] = 1
 
         self.edgelist = pd.DataFrame()
@@ -375,22 +410,22 @@ class Population:
 
         # Create the degree list
         self.degree = []
-        for indx in range(self.popsize):
-            self.degree.append(len(self.adjlist[indx]))
+        for indx in range(self.pop_size):
+            self.degree.append(len(self.adj_list[indx]))
 
-    def _init_twitter_topology(self, topology, n, c, p, m1, m2, k):
-        self.popsize = 404719
-        self.parameters = PopulationParameters()
+    def _init_twitter_topology(self):
+        self.pop_size = 404719
+        self.pop_params = PopulationParameters()
         self.edgeList = np.loadtxt("soc-twitter-follows2.mtx", dtype=int)
 
         self.players = []
-        self.adjlist = []
+        self.adj_list = []
 
         # Create the players in the population, empty edge lists
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             player = Player()
             self.players.append(player)
-            self.adjlist.append([])
+            self.adj_list.append([])
 
         rows = []
         cols = []
@@ -398,9 +433,9 @@ class Population:
         for edge in self.edgeList:
             indx = edge[0] - 1
             nindx = edge[1] - 1
-            if not nindx in self.adjlist[indx]:
-                self.adjlist[indx].append(nindx)
-                self.adjlist[nindx].append(indx)
+            if not nindx in self.adj_list[indx]:
+                self.adj_list[indx].append(nindx)
+                self.adj_list[nindx].append(indx)
                 rows.append(indx)
                 cols.append(nindx)
                 rows.append(nindx)
@@ -413,8 +448,8 @@ class Population:
 
         # Create the degree list
         self.degree = []
-        for indx in range(self.popsize):
-            self.degree.append(len(self.adjlist[indx]))
+        for indx in range(self.pop_size):
+            self.degree.append(len(self.adj_list[indx]))
 
     #########################################
     # Operations on the population
@@ -424,7 +459,7 @@ class Population:
     def count_real_neighbors(self, indx):
         real_neighbors = 0
 
-        for nindx in self.adjlist[indx]:
+        for nindx in self.adj_list[indx]:
             if self.players[nindx].real:
                 real_neighbors += 1
 
@@ -434,7 +469,7 @@ class Population:
     def count_fake_neighbors(self, indx):
         fake_neighbors = 0
 
-        for nindx in self.adjlist[indx]:
+        for nindx in self.adj_list[indx]:
             if self.players[nindx].fake:
                 fake_neighbors += 1
 
@@ -444,7 +479,7 @@ class Population:
     def count_factcheck_neighbors(self, indx):
         factcheck_neighbors = 0
 
-        for nindx in self.adjlist[indx]:
+        for nindx in self.adj_list[indx]:
             if self.players[nindx].factcheck:
                 factcheck_neighbors += 1
 
@@ -456,7 +491,7 @@ class Population:
         fake_neighbors = 0
         factcheck_neighbors = 0
 
-        for nindx in self.adjlist[indx]:
+        for nindx in self.adj_list[indx]:
             if self.players[nindx].real:
                 real_neighbors += 1
             elif self.players[nindx].fake:
@@ -475,31 +510,31 @@ class Population:
 
         # if [indx] is real
         if self.players[indx].real:
-            payoff += reals * self.parameters.payoff[0]
-            payoff += fakes * self.parameters.payoff[1]
-            if self.parameters.accuracy == 1:
-                payoff += factchecks * self.parameters.payoff[2]
+            payoff += reals * self.pop_params.payoff[0]
+            payoff += fakes * self.pop_params.payoff[1]
+            if self.pop_params.accuracy == 1:
+                payoff += factchecks * self.pop_params.payoff[2]
             else:
                 for i in range(factchecks):
                     r = rand.random()
-                    if r <= self.parameters.accuracy:
-                        payoff += self.parameters.payoff[2]
+                    if r <= self.pop_params.accuracy:
+                        payoff += self.pop_params.payoff[2]
                     else:
-                        payoff += self.parameters.payoff[5]
+                        payoff += self.pop_params.payoff[5]
 
         # if [indx] is fake
         elif self.players[indx].fake:
-            payoff += reals * self.parameters.payoff[3]
-            payoff += fakes * self.parameters.payoff[4]
-            if self.parameters.accuracy == 1:
-                payoff += factchecks * self.parameters.payoff[5]
+            payoff += reals * self.pop_params.payoff[3]
+            payoff += fakes * self.pop_params.payoff[4]
+            if self.pop_params.accuracy == 1:
+                payoff += factchecks * self.pop_params.payoff[5]
             else:
                 for i in range(factchecks):
                     r = rand.random()
-                    if r <= self.parameters.accuracy:
-                        payoff += self.parameters.payoff[5]
+                    if r <= self.pop_params.accuracy:
+                        payoff += self.pop_params.payoff[5]
                     else:
-                        payoff += self.parameters.payoff[2]
+                        payoff += self.pop_params.payoff[2]
 
         # test if [indx] is not a fact-checker
         else:
@@ -518,20 +553,20 @@ class Population:
 
         # Create a temporary list to update from
         # True indicates update to real
-        update_list = [True] * self.popsize
+        update_list = [True] * self.pop_size
 
         # Calculate each player's payoff
-        payoffs = [0] * self.popsize
-        for indx in range(self.popsize):
+        payoffs = [0] * self.pop_size
+        for indx in range(self.pop_size):
             if self.degree[indx] != 0:
                 payoffs[indx] = self.calculate_payoff(indx) / self.degree[indx]
 
         # Update each player
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             if not self.players[indx].factcheck:
                 # Get list of all non-fact-checker neighbors
                 neighbors = []
-                for nindx in self.adjlist[indx]:
+                for nindx in self.adj_list[indx]:
                     if not self.players[nindx].factcheck:
                         neighbors.append(nindx)
 
@@ -539,7 +574,7 @@ class Population:
                 totalfitness = 0
                 cumulative_fit = []
                 for nindx in neighbors:
-                    pipay = self.parameters.selection * payoffs[nindx]
+                    pipay = self.pop_params.selection * payoffs[nindx]
                     totalfitness += math.exp(pipay)
                     cumulative_fit.append(totalfitness)
 
@@ -569,7 +604,7 @@ class Population:
                 update_list[indx] = self.players[chosen_neighbor].real
 
         # Update player strategies with update_list
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             if not self.players[indx].factcheck:
                 if update_list[indx]:
                     if self.players[indx].fake:
@@ -613,7 +648,7 @@ class Population:
         # List of indices to become fact-checkers
         factcheckers = []
         while len(factcheckers) < n:
-            indx = rand.randint(0, self.popsize - 1)
+            indx = rand.randint(0, self.pop_size - 1)
             if not indx in factcheckers:
                 if not self.players[indx].factcheck:
                     factcheckers.append(indx)
@@ -626,7 +661,7 @@ class Population:
         # List of indices to become real
         reals = []
         while len(reals) < n:
-            indx = rand.randint(0, self.popsize - 1)
+            indx = rand.randint(0, self.pop_size - 1)
             if not indx in reals:
                 if not self.players[indx].real:
                     reals.append(indx)
@@ -639,7 +674,7 @@ class Population:
         # List of indices to become fakes
         fakes = []
         while len(fakes) < n:
-            indx = rand.randint(0, self.popsize - 1)
+            indx = rand.randint(0, self.pop_size - 1)
             if not indx in fakes:
                 if not self.players[indx].fake:
                     fakes.append(indx)
@@ -665,7 +700,7 @@ class Population:
     # Count how many members of the population are sharing real news
     def count_reals(self):
         count = 0
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             if self.players[indx].real:
                 count += 1
         return count
@@ -673,7 +708,7 @@ class Population:
     # Count how many members of the population are sharing fake news
     def count_fakes(self):
         count = 0
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             if self.players[indx].fake:
                 count += 1
         return count
@@ -681,7 +716,7 @@ class Population:
     # Count how many members of the population are fact-checking
     def count_factchecks(self):
         count = 0
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             if self.players[indx].factcheck:
                 count += 1
         return count
@@ -691,7 +726,7 @@ class Population:
         count_reals = 0
         count_fakes = 0
         count_factchecks = 0
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             if self.players[indx].real:
                 count_reals += 1
             elif self.players[indx].fake:
@@ -704,8 +739,8 @@ class Population:
 
     # Create a list with True in every index that is sharing real news
     def reals_list(self):
-        reals_list = [False] * self.popsize
-        for indx in range(self.popsize):
+        reals_list = [False] * self.pop_size
+        for indx in range(self.pop_size):
             if self.players[indx].real:
                 reals_list[indx] = True
         return reals_list
@@ -719,9 +754,9 @@ class Population:
         totals = [0] * max(self.degree)
         probs = [0] * max(self.degree)
 
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             if not self.players[indx].factcheck:
-                for nindx in range(self.popsize):
+                for nindx in range(self.pop_size):
                     if not self.players[nindx].factcheck and indx != nindx:
                         cns = self.common_neighbors(indx, nindx)
                         if self.players[indx].real == self.players[nindx].real:
@@ -740,9 +775,9 @@ class Population:
         same = 0
         dif = 0
 
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             if not self.players[indx].factcheck:
-                for nindx in range(self.popsize):
+                for nindx in range(self.pop_size):
                     if not self.players[nindx].factcheck and indx != nindx:
                         if self.players[indx].real == self.players[nindx].real:
                             same += 1
@@ -763,7 +798,7 @@ class Population:
         sizes = []
         # The list of indices of players sharing real news
         reals = []
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             if self.players[indx].real:
                 reals.append(indx)
 
@@ -773,7 +808,7 @@ class Population:
             reals.pop(0)
             pointer = 0
             while pointer < len(component):
-                for indx in self.adjlist[component[pointer]]:
+                for indx in self.adj_list[component[pointer]]:
                     if indx in reals:
                         component.append(indx)
                         reals.pop(reals.index(indx))
@@ -786,7 +821,7 @@ class Population:
     # Returns the eigenvalue centrality of each node
     def cent_eig(self):
 
-        if self.popsize > 400000:
+        if self.pop_size > 400000:
             eval, evecs = eigsh(self.sparseadjmat, k=1, which="LM")
 
             centrality = evecs
@@ -796,9 +831,9 @@ class Population:
 
             # Identify if the largest eigenvalue is the first or last one
             e1 = evals[0]
-            e2 = evals[self.popsize - 1]
+            e2 = evals[self.pop_size - 1]
             if abs(e2) >= abs(e1):
-                indx = self.popsize - 1
+                indx = self.pop_size - 1
             else:
                 indx = 0
 
@@ -812,16 +847,16 @@ class Population:
 
     # Returns the betweenness centrality of each node
     def cent_between(self):
-        centrality = np.asarray([0] * self.popsize)
+        centrality = np.asarray([0] * self.pop_size)
         # Find all the geodesics starting at each node
-        for indx in range(self.popsize):
+        for indx in range(self.pop_size):
             print(indx)
             # List that will tell how many geodesics start at indx
-            geos = np.asarray([0] * self.popsize)
+            geos = np.asarray([0] * self.pop_size)
 
             # Find distances and weights
-            distances = np.asarray([-1] * self.popsize)
-            weights = np.asarray([-1] * self.popsize)
+            distances = np.asarray([-1] * self.pop_size)
+            weights = np.asarray([-1] * self.pop_size)
             dist = 0
             distances[indx] = 0
             weights[indx] = 1
@@ -829,7 +864,7 @@ class Population:
             while dist in distances:
                 templist = np.where(distances == dist)[0]
                 for nindx in templist:
-                    for mindx in self.adjlist[nindx]:
+                    for mindx in self.adj_list[nindx]:
                         if distances[mindx] == -1:
                             distances[mindx] = dist + 1
                             weights[mindx] = weights[nindx]
@@ -850,7 +885,7 @@ class Population:
                 farther = np.where(distances == dist + 1)[0]
                 for nindx in current:
                     geos[nindx] = 1
-                    temp = list(set(self.adjlist[nindx]).intersection(farther))
+                    temp = list(set(self.adj_list[nindx]).intersection(farther))
                     for mindx in temp:
                         if geos[mindx] == -1:
                             print("betweenness error")
@@ -871,9 +906,9 @@ class Population:
     # Returns the local clustering coefficient
     def clusteringcoeff(self, indx):
         coefficient = 0
-        indxs = self.adjlist[indx]
+        indxs = self.adj_list[indx]
         for nindx in indxs:
-            coefficient += len(set(indxs) & set(self.adjlist[nindx])) / 2
+            coefficient += len(set(indxs) & set(self.adj_list[nindx])) / 2
 
         if len(indxs) > 1:
             coefficient = coefficient / comb(len(indxs), 2)
@@ -881,6 +916,6 @@ class Population:
 
     # Returns the number of neighbors in common between indx and nindx
     def common_neighbors(self, indx, nindx):
-        neighbors = len(set(self.adjlist[indx]) & set(self.adjlist[nindx]))
+        neighbors = len(set(self.adj_list[indx]) & set(self.adj_list[nindx]))
 
         return neighbors

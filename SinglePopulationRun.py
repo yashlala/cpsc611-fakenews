@@ -50,7 +50,7 @@ stabilization_time = 20
 ###################################
 
 
-pop = Population("random", n=20, p=0.4)
+pop = Population("random", pop_size=20, p=0.4)
 
 # Create initial strategies
 pop.preset_random()
@@ -79,8 +79,8 @@ plt.savefig("initial-g.png", dpi=600)
 ###################################
 
 # Initialization
-oldlist = [True] * pop.popsize
-olderlist = [True] * pop.popsize
+oldlist = [True] * pop.pop_size
+olderlist = [True] * pop.pop_size
 newlist = pop.reals_list()
 
 # increments once per loop.
@@ -105,7 +105,7 @@ while not simulation_is_steady_state:
     reals = pop.count_reals()
 
     # Detect if a strategy has completely fixated
-    if reals == pop.popsize - fcs:
+    if reals == pop.pop_size - fcs:
         print("The real news strategy has completely fixated")
         break
     if reals == 0:
@@ -120,7 +120,7 @@ while not simulation_is_steady_state:
 
     if count == stabilization_time:
         print("The system has reached a fixed state")
-        if reals >= (pop.popsize - fcs) / 2:
+        if reals >= (pop.pop_size - fcs) / 2:
             print("The real news strategy has more players")
         else:
             print("The fake news strategy has more players")
@@ -136,7 +136,7 @@ while not simulation_is_steady_state:
         print("The system has reached a periodic loop")
         pop.update_step()
         reals += pop.count_reals()
-        if reals >= pop.popsize - fcs:
+        if reals >= pop.pop_size - fcs:
             print("The real news strategy has more players")
         else:
             print("The fake news strategy has more players")
@@ -145,7 +145,7 @@ while not simulation_is_steady_state:
     # If we reach the time limit:
     if simulation_time == max_simulation_time:
         print("The system has not reached a fixed state")
-        if reals >= (pop.popsize - fcs) / 2:
+        if reals >= (pop.pop_size - fcs) / 2:
             print("The real news strategy has more players")
         else:
             print("The fake news strategy has more players")
@@ -198,9 +198,9 @@ for i in range(len(components)):
     y = components[i]
     plt.scatter([i] * len(y), y, c="C0", s=0.5)
 
-plt.savefig('component-plot-2.png', dpi=600)
+plt.savefig("component-plot-2.png", dpi=600)
 
 plt.subplots()
 plt.plot([sum(x) for x in components])
 
-plt.savefig('cooperator-plot-2.png', dpi=600)
+plt.savefig("cooperator-plot-2.png", dpi=600)
