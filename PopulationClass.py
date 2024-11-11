@@ -17,174 +17,211 @@ from PopulationParametersClass import PopulationParameters
 
 class Population:
     def __init__(self, topology, n=900, c=4, p=0.1, m1=30, m2=30, k=8):
+        if topology == "smallworld":
+            self._init_smallworld_topology(topology, n, c, p, m1, m2, k)
+        elif topology == "grid":
+            self._init_grid_topology(topology, n, c, p, m1, m2, k)
+        elif topology == "random":
+            self._init_random_topology(topology, n, c, p, m1, m2, k)
+        elif topology == "scalefree":
+            self._init_scalefree_topology(topology, n, c, p, m1, m2, k)
+        elif topology == "regular":
+            self._init_scalefree_topology(topology, n, c, p, m1, m2, k)
+        elif topology == "twitter":
+            self._init_twitter_topology(topology, n, c, p, m1, m2, k)
+        else:
+            raise ValueError("Unacceptable network topology")
 
-        if topology == "grid":
-            # Creates an m1 by m2 population on a rectangular grid
-            # m1 and m2 must both be >= 3
-            # k is the degree and will be either 4 or 8
-            # Adds additional edges with prob p for each edge in grid
-            if not (k == 4 or k == 8):
-                raise ValueError("Degree must be 4 or 8")
-            self.popsize = m1 * m2
-            self.parameters = PopulationParameters()
-            self.players = []
-            self.adjlist = []
+    def _init_grid_topology(self, topology, n, c, p, m1, m2, k):
+        # Creates an m1 by m2 population on a rectangular grid
+        # m1 and m2 must both be >= 3
+        # k is the degree and will be either 4 or 8
+        # Adds additional edges with prob p for each edge in grid
+        if not (k == 4 or k == 8):
+            raise ValueError("Degree must be 4 or 8")
+        self.popsize = m1 * m2
+        self.parameters = PopulationParameters()
+        self.players = []
+        self.adjlist = []
 
-            # Create the players in the population, empty edge lists
-            for indx in range(self.popsize):
-                player = Player()
-                self.players.append(player)
-                self.adjlist.append([])
+        # Create the players in the population, empty edge lists
+        for indx in range(self.popsize):
+            player = Player()
+            self.players.append(player)
+            self.adjlist.append([])
 
-            # Create the edgelist, adjacency list, adjacency matrix
-            # self.adjlist will be used for computation and updates
-            # self.edgelist will be used for visualization to pass to networkx
-            # self.adjmat will be used for eigenvector centrality
-            zeros = [0] * self.popsize
-            self.adjmat = np.asarray([zeros] * self.popsize)
+        # Create the edgelist, adjacency list, adjacency matrix
+        # self.adjlist will be used for computation and updates
+        # self.edgelist will be used for visualization to pass to networkx
+        # self.adjmat will be used for eigenvector centrality
+        zeros = [0] * self.popsize
+        self.adjmat = np.asarray([zeros] * self.popsize)
 
-            templow = []
-            temphigh = []
+        templow = []
+        temphigh = []
 
-            for indx in range(self.popsize):
-                # Add the two individuals directly above and below
-                self.adjlist[indx].append((indx + m2) % self.popsize)
-                self.adjlist[indx].append((indx - m2) % self.popsize)
-                # Add the individuals to the right
-                if (indx + 1) % m2 == 0:
-                    self.adjlist[indx].append((indx - m2 + 1) % self.popsize)
-                    if k == 8:
-                        self.adjlist[indx].append((indx - 2 * m2 + 1) % self.popsize)
-                        self.adjlist[indx].append((indx + 1) % self.popsize)
-                else:
+        for indx in range(self.popsize):
+            # Add the two individuals directly above and below
+            self.adjlist[indx].append((indx + m2) % self.popsize)
+            self.adjlist[indx].append((indx - m2) % self.popsize)
+            # Add the individuals to the right
+            if (indx + 1) % m2 == 0:
+                self.adjlist[indx].append((indx - m2 + 1) % self.popsize)
+                if k == 8:
+                    self.adjlist[indx].append((indx - 2 * m2 + 1) % self.popsize)
                     self.adjlist[indx].append((indx + 1) % self.popsize)
-                    if k == 8:
-                        self.adjlist[indx].append((indx - m2 + 1) % self.popsize)
-                        self.adjlist[indx].append((indx + m2 + 1) % self.popsize)
-                # Add the individuals to the left
-                if indx % m2 == 0:
-                    self.adjlist[indx].append((indx + m2 - 1) % self.popsize)
-                    if k == 8:
-                        self.adjlist[indx].append((indx - 1) % self.popsize)
-                        self.adjlist[indx].append((indx + 2 * m2 - 1) % self.popsize)
-                else:
+            else:
+                self.adjlist[indx].append((indx + 1) % self.popsize)
+                if k == 8:
+                    self.adjlist[indx].append((indx - m2 + 1) % self.popsize)
+                    self.adjlist[indx].append((indx + m2 + 1) % self.popsize)
+            # Add the individuals to the left
+            if indx % m2 == 0:
+                self.adjlist[indx].append((indx + m2 - 1) % self.popsize)
+                if k == 8:
                     self.adjlist[indx].append((indx - 1) % self.popsize)
-                    if k == 8:
-                        self.adjlist[indx].append((indx - m2 - 1) % self.popsize)
-                        self.adjlist[indx].append((indx + m2 - 1) % self.popsize)
+                    self.adjlist[indx].append((indx + 2 * m2 - 1) % self.popsize)
+            else:
+                self.adjlist[indx].append((indx - 1) % self.popsize)
+                if k == 8:
+                    self.adjlist[indx].append((indx - m2 - 1) % self.popsize)
+                    self.adjlist[indx].append((indx + m2 - 1) % self.popsize)
 
-            # Add the additional edges
-            # Add edge with prob p for all self.popsize*k/2 edges in grid
-            for edge in range(int(self.popsize * k / 2)):
+        # Add the additional edges
+        # Add edge with prob p for all self.popsize*k/2 edges in grid
+        for edge in range(int(self.popsize * k / 2)):
+            r = rand.random()
+            if r < p:
+                new = False
+                while new == False:
+                    indx = rand.randint(0, self.popsize - 1)
+                    nindx = rand.randint(0, self.popsize - 1)
+                    if not indx == nindx and not indx in self.adjlist[nindx]:
+                        new = True
+                self.adjlist[indx].append(nindx)
+                self.adjlist[nindx].append(indx)
+
+        # Create the adjmat and edgelist
+        for indx in range(self.popsize):
+            for nindx in self.adjlist[indx]:
+                self.adjmat[indx, nindx] = 1
+                if indx < nindx:
+                    templow.append(indx)
+                    temphigh.append(nindx)
+
+        self.edgelist = pd.DataFrame()
+        self.edgelist["lowindx"] = templow
+        self.edgelist["highindx"] = temphigh
+
+        # Create the degree list
+        self.degree = []
+        for indx in range(self.popsize):
+            self.degree.append(len(self.adjlist[indx]))
+
+    def _init_random_topology(self, topology, n, c, p, m1, m2, k):
+        # Creates a population on a random network.
+        # The network has n individuals (vertices),
+        # probability p connecting any two vertices
+        self.popsize = n
+        self.edgeprob = p
+        self.parameters = PopulationParameters()
+
+        self.players = []
+        self.adjlist = []
+
+        # Create the players in the population, empty edge lists
+        for indx in range(self.popsize):
+            player = Player()
+            self.players.append(player)
+            self.adjlist.append([])
+
+        # Create the edgelist, adjacency list, adjacency matrix
+        # self.adjlist will be used for computation and updates
+        # self.edgelist will be used for visualization to pass to networkx
+        # self.adjmat will be used for eigenvector centrality
+        zeros = [0] * self.popsize
+        self.adjmat = np.asarray([zeros] * self.popsize)
+
+        templow = []
+        temphigh = []
+        for indx in range(self.popsize - 1):
+            for temp in range(self.popsize - indx - 1):
+                nindx = temp + indx + 1
+                # Decide if there is an edge between indx and nindx
                 r = rand.random()
-                if r < p:
-                    new = False
-                    while new == False:
-                        indx = rand.randint(0, self.popsize - 1)
-                        nindx = rand.randint(0, self.popsize - 1)
-                        if not indx == nindx and not indx in self.adjlist[nindx]:
-                            new = True
+                if r < self.edgeprob:
                     self.adjlist[indx].append(nindx)
                     self.adjlist[nindx].append(indx)
-
-            # Create the adjmat and edgelist
-            for indx in range(self.popsize):
-                for nindx in self.adjlist[indx]:
+                    templow.append(indx)
+                    temphigh.append(nindx)
                     self.adjmat[indx, nindx] = 1
-                    if indx < nindx:
-                        templow.append(indx)
-                        temphigh.append(nindx)
+                    self.adjmat[nindx, indx] = 1
+        self.edgelist = pd.DataFrame()
+        self.edgelist["lowindx"] = templow
+        self.edgelist["highindx"] = temphigh
 
-            self.edgelist = pd.DataFrame()
-            self.edgelist["lowindx"] = templow
-            self.edgelist["highindx"] = temphigh
+        # Create the degree list
+        self.degree = []
+        for indx in range(self.popsize):
+            self.degree.append(len(self.adjlist[indx]))
 
-            # Create the degree list
-            self.degree = []
-            for indx in range(self.popsize):
-                self.degree.append(len(self.adjlist[indx]))
+    def _init_scalefree_topology(self, topology, n, c, p, m1, m2, k):
+        # Creates a population of n players with a scale-free degree dist
+        # each new individual has starting degree c
+        self.popsize = n
+        self.newdegree = c
+        self.parameters = PopulationParameters()
 
-        elif topology == "random":
-            # Creates a population on a random network.
-            # The network has n individuals (vertices),
-            # probability p connecting any two vertices
-            self.popsize = n
-            self.edgeprob = p
-            self.parameters = PopulationParameters()
+        self.players = []
+        self.adjlist = []
+        self.degree = []
 
-            self.players = []
-            self.adjlist = []
+        # Create the players in the population, empty edge lists
+        for indx in range(self.popsize):
+            player = Player()
+            self.players.append(player)
+            self.adjlist.append([])
+            self.degree.append(0)
 
-            # Create the players in the population, empty edge lists
-            for indx in range(self.popsize):
-                player = Player()
-                self.players.append(player)
-                self.adjlist.append([])
+        # cumulative degree list, needed to choose proportional to degree
+        cdegree = [0] * self.popsize
 
-            # Create the edgelist, adjacency list, adjacency matrix
-            # self.adjlist will be used for computation and updates
-            # self.edgelist will be used for visualization to pass to networkx
-            # self.adjmat will be used for eigenvector centrality
-            zeros = [0] * self.popsize
-            self.adjmat = np.asarray([zeros] * self.popsize)
+        # Create the edgelist, adjacency list, adjacency matrix
+        # self.adjlist will be used for computation and updates
+        # self.edgelist will be used for visualization to pass to networkx
+        # self.adjmat will be used for eigenvector centrality
+        zeros = [0] * self.popsize
+        self.adjmat = np.asarray([zeros] * self.popsize)
 
-            templow = []
-            temphigh = []
-            for indx in range(self.popsize - 1):
-                for temp in range(self.popsize - indx - 1):
-                    nindx = temp + indx + 1
-                    # Decide if there is an edge between indx and nindx
-                    r = rand.random()
-                    if r < self.edgeprob:
-                        self.adjlist[indx].append(nindx)
-                        self.adjlist[nindx].append(indx)
-                        templow.append(indx)
-                        temphigh.append(nindx)
-                        self.adjmat[indx, nindx] = 1
-                        self.adjmat[nindx, indx] = 1
-            self.edgelist = pd.DataFrame()
-            self.edgelist["lowindx"] = templow
-            self.edgelist["highindx"] = temphigh
+        templow = []
+        temphigh = []
 
-            # Create the degree list
-            self.degree = []
-            for indx in range(self.popsize):
-                self.degree.append(len(self.adjlist[indx]))
+        # Start with a small complete network
+        for indx in range(self.newdegree):
+            for nindx in range(indx + 1, self.newdegree):
+                self.adjlist[indx].append(nindx)
+                self.degree[indx] += 1
+                for place in range(indx, self.popsize):
+                    cdegree[place] += 1
+                self.adjlist[nindx].append(indx)
+                self.degree[nindx] += 1
+                for place in range(nindx, self.popsize):
+                    cdegree[place] += 1
+                templow.append(indx)
+                temphigh.append(nindx)
 
-        elif topology == "scalefree":
-            # Creates a population of n players with a scale-free degree dist
-            # each new individual has starting degree c
-            self.popsize = n
-            self.newdegree = c
-            self.parameters = PopulationParameters()
-
-            self.players = []
-            self.adjlist = []
-            self.degree = []
-
-            # Create the players in the population, empty edge lists
-            for indx in range(self.popsize):
-                player = Player()
-                self.players.append(player)
-                self.adjlist.append([])
-                self.degree.append(0)
-
-            # cumulative degree list, needed to choose proportional to degree
-            cdegree = [0] * self.popsize
-
-            # Create the edgelist, adjacency list, adjacency matrix
-            # self.adjlist will be used for computation and updates
-            # self.edgelist will be used for visualization to pass to networkx
-            # self.adjmat will be used for eigenvector centrality
-            zeros = [0] * self.popsize
-            self.adjmat = np.asarray([zeros] * self.popsize)
-
-            templow = []
-            temphigh = []
-
-            # Start with a small complete network
-            for indx in range(self.newdegree):
-                for nindx in range(indx + 1, self.newdegree):
+        # Now begin adding vertices
+        for indx in range(self.newdegree, self.popsize):
+            edges = 0
+            while edges < c:
+                # find a new vertex to connect to indx
+                r = rand.random()
+                for nindx in range(self.popsize):
+                    if cdegree[nindx] / cdegree[self.popsize - 1] > r:
+                        # nindx is the selected vertex
+                        break
+                # test not already neighbors or the same vertex
+                if not (indx in self.adjlist[nindx]) and (indx != nindx):
                     self.adjlist[indx].append(nindx)
                     self.degree[indx] += 1
                     for place in range(indx, self.popsize):
@@ -193,217 +230,191 @@ class Population:
                     self.degree[nindx] += 1
                     for place in range(nindx, self.popsize):
                         cdegree[place] += 1
+                    templow.append(nindx)
+                    temphigh.append(indx)
+                    edges += 1
+
+        # Create the adjmat and edgelist
+        for indx in range(self.popsize):
+            for nindx in self.adjlist[indx]:
+                self.adjmat[indx, nindx] = 1
+
+        self.edgelist = pd.DataFrame()
+        self.edgelist["lowindx"] = templow
+        self.edgelist["highindx"] = temphigh
+
+    def _init_regular_topology(self, topology, n, c, p, m1, m2, k):
+        # Creates a population of n individuals
+        # Each individual has k neighbors
+        self.popsize = n
+        self.degree = [k] * self.popsize
+        self.parameters = PopulationParameters()
+
+        self.players = []
+        self.adjlist = []
+
+        # Create the players in the population
+        for indx in range(self.popsize):
+            player = Player()
+            self.players.append(player)
+
+        # Create the edgelist, adjacency list, adjacency matrix
+        # self.adjlist will be used for computation and updates
+        # self.edgelist will be used for visualization to pass to networkx
+        # self.adjmat will be used for eigenvector centrality
+        zeros = [0] * self.popsize
+        self.adjmat = np.asarray([zeros] * self.popsize)
+
+        templow = []
+        temphigh = []
+
+        # Choose the edges, rechoose edges if not simple
+        simple = False
+        attempts = 0
+        while simple == False:
+            attempts += 1
+            # print(f'Attempt number: {attempts}')
+            simple = True
+            self.adjlist = [[] for i in range(self.popsize)]
+            stubs = []
+            for indx in range(self.popsize):
+                stubs += [indx] * k
+
+            while stubs:
+                stub1 = stubs.pop(rand.randint(0, len(stubs) - 1))
+                stub2 = stubs.pop(rand.randint(0, len(stubs) - 1))
+                self.adjlist[stub1].append(stub2)
+                self.adjlist[stub2].append(stub1)
+
+            # Test if the new network is simple.
+            for indx in range(self.popsize):
+                nbrs = self.adjlist[indx]
+                if len(nbrs) != len(set(nbrs)):
+                    simple = False
+                    break
+                if indx in nbrs:
+                    simple = False
+                    break
+
+        # print('Simple!')
+
+        # Create the adjacency matrix, edge list
+        for indx in range(self.popsize):
+            for nindx in self.adjlist[indx]:
+                self.adjmat[indx, nindx] = 1
+                if indx < nindx:
                     templow.append(indx)
                     temphigh.append(nindx)
 
-            # Now begin adding vertices
-            for indx in range(self.newdegree, self.popsize):
-                edges = 0
-                while edges < c:
-                    # find a new vertex to connect to indx
-                    r = rand.random()
-                    for nindx in range(self.popsize):
-                        if cdegree[nindx] / cdegree[self.popsize - 1] > r:
-                            # nindx is the selected vertex
-                            break
-                    # test not already neighbors or the same vertex
-                    if not (indx in self.adjlist[nindx]) and (indx != nindx):
-                        self.adjlist[indx].append(nindx)
-                        self.degree[indx] += 1
-                        for place in range(indx, self.popsize):
-                            cdegree[place] += 1
-                        self.adjlist[nindx].append(indx)
-                        self.degree[nindx] += 1
-                        for place in range(nindx, self.popsize):
-                            cdegree[place] += 1
-                        templow.append(nindx)
-                        temphigh.append(indx)
-                        edges += 1
+        self.edgelist = pd.DataFrame()
+        self.edgelist["lowindx"] = templow
+        self.edgelist["highindx"] = temphigh
 
-            # Create the adjmat and edgelist
-            for indx in range(self.popsize):
-                for nindx in self.adjlist[indx]:
-                    self.adjmat[indx, nindx] = 1
+    def _init_smallworld_topology(self, topology, n, c, p, m1, m2, k):
+        # Creates a population on a small world network
+        # In the circle, each individual has c neighbors
+        # For each edge in the circle (0.5nc), add random shortcut with prob p
+        self.popsize = n
+        self.circleneighbors = c
+        self.shortcutprob = p
+        self.parameters = PopulationParameters()
 
-            self.edgelist = pd.DataFrame()
-            self.edgelist["lowindx"] = templow
-            self.edgelist["highindx"] = temphigh
+        self.players = []
+        self.adjlist = []
 
-        elif topology == "regular":
-            # Creates a population of n individuals
-            # Each individual has k neighbors
-            self.popsize = n
-            self.degree = [k] * self.popsize
-            self.parameters = PopulationParameters()
+        # Create the players in the population, empty edge lists
+        for indx in range(self.popsize):
+            player = Player()
+            self.players.append(player)
+            self.adjlist.append([])
 
-            self.players = []
-            self.adjlist = []
+        # Create the edgelist, adjacency list, adjacency matrix
+        # self.adjlist will be used for computation and updates
+        # self.edgelist will be used for visualization to pass to networkx
+        # self.adjmat will be used for eigenvector centrality
+        zeros = [0] * self.popsize
+        self.adjmat = np.asarray([zeros] * self.popsize)
 
-            # Create the players in the population
-            for indx in range(self.popsize):
-                player = Player()
-                self.players.append(player)
+        templow = []
+        temphigh = []
 
-            # Create the edgelist, adjacency list, adjacency matrix
-            # self.adjlist will be used for computation and updates
-            # self.edgelist will be used for visualization to pass to networkx
-            # self.adjmat will be used for eigenvector centrality
-            zeros = [0] * self.popsize
-            self.adjmat = np.asarray([zeros] * self.popsize)
+        # First, the circle
+        rellist = list(range(int(-c / 2), 0)) + list(range(1, int(c / 2 + 1)))
+        for indx in range(self.popsize):
+            for rel in rellist:
+                nindx = (indx + rel) % self.popsize
+                self.adjlist[indx].append(nindx)
+                if indx < nindx:
+                    templow.append(indx)
+                    temphigh.append(nindx)
 
-            templow = []
-            temphigh = []
-
-            # Choose the edges, rechoose edges if not simple
-            simple = False
-            attempts = 0
-            while simple == False:
-                attempts += 1
-                # print(f'Attempt number: {attempts}')
-                simple = True
-                self.adjlist = [[] for i in range(self.popsize)]
-                stubs = []
-                for indx in range(self.popsize):
-                    stubs += [indx] * k
-
-                while stubs:
-                    stub1 = stubs.pop(rand.randint(0, len(stubs) - 1))
-                    stub2 = stubs.pop(rand.randint(0, len(stubs) - 1))
-                    self.adjlist[stub1].append(stub2)
-                    self.adjlist[stub2].append(stub1)
-
-                # Test if the new network is simple.
-                for indx in range(self.popsize):
-                    nbrs = self.adjlist[indx]
-                    if len(nbrs) != len(set(nbrs)):
-                        simple = False
-                        break
-                    if indx in nbrs:
-                        simple = False
-                        break
-
-            # print('Simple!')
-
-            # Create the adjacency matrix, edge list
-            for indx in range(self.popsize):
-                for nindx in self.adjlist[indx]:
-                    self.adjmat[indx, nindx] = 1
-                    if indx < nindx:
-                        templow.append(indx)
-                        temphigh.append(nindx)
-
-            self.edgelist = pd.DataFrame()
-            self.edgelist["lowindx"] = templow
-            self.edgelist["highindx"] = temphigh
-
-        elif topology == "smallworld":
-            # Creates a population on a small world network
-            # In the circle, each individual has c neighbors
-            # For each edge in the circle (0.5nc), add random shortcut with prob p
-            self.popsize = n
-            self.circleneighbors = c
-            self.shortcutprob = p
-            self.parameters = PopulationParameters()
-
-            self.players = []
-            self.adjlist = []
-
-            # Create the players in the population, empty edge lists
-            for indx in range(self.popsize):
-                player = Player()
-                self.players.append(player)
-                self.adjlist.append([])
-
-            # Create the edgelist, adjacency list, adjacency matrix
-            # self.adjlist will be used for computation and updates
-            # self.edgelist will be used for visualization to pass to networkx
-            # self.adjmat will be used for eigenvector centrality
-            zeros = [0] * self.popsize
-            self.adjmat = np.asarray([zeros] * self.popsize)
-
-            templow = []
-            temphigh = []
-
-            # First, the circle
-            rellist = list(range(int(-c / 2), 0)) + list(range(1, int(c / 2 + 1)))
-            for indx in range(self.popsize):
-                for rel in rellist:
-                    nindx = (indx + rel) % self.popsize
-                    self.adjlist[indx].append(nindx)
-                    if indx < nindx:
-                        templow.append(indx)
-                        temphigh.append(nindx)
-
-            # Now the shortcuts
-            for iteration in range(int(0.5 * self.popsize * self.circleneighbors)):
-                r = rand.random()
-                if r < self.shortcutprob:
-                    indx = rand.randint(0, self.popsize - 1)
-                    nindx = rand.randint(0, self.popsize - 1)
-                    if not (nindx in self.adjlist[indx]) and not (nindx == indx):
-                        self.adjlist[indx].append(nindx)
-                        self.adjlist[nindx].append(indx)
-                        if indx < nindx:
-                            templow.append(indx)
-                            temphigh.append(nindx)
-                        else:
-                            templow.append(nindx)
-                            temphigh.append(indx)
-
-            # Create the adjmat and edgelist
-            for indx in range(self.popsize):
-                for nindx in self.adjlist[indx]:
-                    self.adjmat[indx, nindx] = 1
-
-            self.edgelist = pd.DataFrame()
-            self.edgelist["lowindx"] = templow
-            self.edgelist["highindx"] = temphigh
-
-            # Create the degree list
-            self.degree = []
-            for indx in range(self.popsize):
-                self.degree.append(len(self.adjlist[indx]))
-
-        elif topology == "twitter":
-            self.popsize = 404719
-            self.parameters = PopulationParameters()
-            self.edgeList = np.loadtxt("soc-twitter-follows2.mtx", dtype=int)
-
-            self.players = []
-            self.adjlist = []
-
-            # Create the players in the population, empty edge lists
-            for indx in range(self.popsize):
-                player = Player()
-                self.players.append(player)
-                self.adjlist.append([])
-
-            rows = []
-            cols = []
-
-            for edge in self.edgeList:
-                indx = edge[0] - 1
-                nindx = edge[1] - 1
-                if not nindx in self.adjlist[indx]:
+        # Now the shortcuts
+        for iteration in range(int(0.5 * self.popsize * self.circleneighbors)):
+            r = rand.random()
+            if r < self.shortcutprob:
+                indx = rand.randint(0, self.popsize - 1)
+                nindx = rand.randint(0, self.popsize - 1)
+                if not (nindx in self.adjlist[indx]) and not (nindx == indx):
                     self.adjlist[indx].append(nindx)
                     self.adjlist[nindx].append(indx)
-                    rows.append(indx)
-                    cols.append(nindx)
-                    rows.append(nindx)
-                    cols.append(indx)
+                    if indx < nindx:
+                        templow.append(indx)
+                        temphigh.append(nindx)
+                    else:
+                        templow.append(nindx)
+                        temphigh.append(indx)
 
-            data = np.asarray([1] * len(rows))
+        # Create the adjmat and edgelist
+        for indx in range(self.popsize):
+            for nindx in self.adjlist[indx]:
+                self.adjmat[indx, nindx] = 1
 
-            self.sparseadjmat = coo_matrix((data, (rows, cols)))
-            self.sparseadjmat = self.sparseadjmat.astype(float)
+        self.edgelist = pd.DataFrame()
+        self.edgelist["lowindx"] = templow
+        self.edgelist["highindx"] = temphigh
 
-            # Create the degree list
-            self.degree = []
-            for indx in range(self.popsize):
-                self.degree.append(len(self.adjlist[indx]))
+        # Create the degree list
+        self.degree = []
+        for indx in range(self.popsize):
+            self.degree.append(len(self.adjlist[indx]))
 
-        else:
-            raise ValueError("Unacceptable network topology")
+    def _init_twitter_topology(self, topology, n, c, p, m1, m2, k):
+        self.popsize = 404719
+        self.parameters = PopulationParameters()
+        self.edgeList = np.loadtxt("soc-twitter-follows2.mtx", dtype=int)
+
+        self.players = []
+        self.adjlist = []
+
+        # Create the players in the population, empty edge lists
+        for indx in range(self.popsize):
+            player = Player()
+            self.players.append(player)
+            self.adjlist.append([])
+
+        rows = []
+        cols = []
+
+        for edge in self.edgeList:
+            indx = edge[0] - 1
+            nindx = edge[1] - 1
+            if not nindx in self.adjlist[indx]:
+                self.adjlist[indx].append(nindx)
+                self.adjlist[nindx].append(indx)
+                rows.append(indx)
+                cols.append(nindx)
+                rows.append(nindx)
+                cols.append(indx)
+
+        data = np.asarray([1] * len(rows))
+
+        self.sparseadjmat = coo_matrix((data, (rows, cols)))
+        self.sparseadjmat = self.sparseadjmat.astype(float)
+
+        # Create the degree list
+        self.degree = []
+        for indx in range(self.popsize):
+            self.degree.append(len(self.adjlist[indx]))
 
     #########################################
     # Operations on the population
