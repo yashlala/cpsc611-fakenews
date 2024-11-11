@@ -10,6 +10,7 @@ import math
 from scipy.special import comb
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import eigsh
+from typing import List
 
 from PlayerClass import Player
 from PopulationParametersClass import PopulationParameters
@@ -622,19 +623,19 @@ class Population:
     #########################################
 
     # Set all the players to real
-    def preset_all_real(self):
+    def set_all_nodes_realnews(self):
         for player in self.players:
             player.set_real()
             player.new = False
 
     # Set all players to fake
-    def preset_all_fake(self):
+    def set_all_nodes_fakenews(self):
         for player in self.players:
             player.set_fake()
             player.new = False
 
     # Set each player to real or fake with probability 1/2
-    def preset_random(self):
+    def randomize_all_nodes(self):
         for player in self.players:
             r = rand.random()
             if r <= 0.5:
@@ -643,8 +644,8 @@ class Population:
                 player.set_fake()
             player.new = False
 
-    # Randomly select n individuals to become fact-checkers
-    def add_n_factcheckers(self, n):
+    def add_factchecker_nodes(self, n: int):
+        """Randomly select `n` individuals to become fact checkers"""
         # List of indices to become fact-checkers
         factcheckers = []
         while len(factcheckers) < n:
@@ -656,8 +657,8 @@ class Population:
         for indx in factcheckers:
             self.players[indx].set_factcheck()
 
-    # Randomly select n individuals to become real news
-    def add_n_reals(self, n):
+    def add_realnews_nodes(self, n: int):
+        """Randomly select n individuals to become real news"""
         # List of indices to become real
         reals = []
         while len(reals) < n:
@@ -669,8 +670,8 @@ class Population:
         for indx in reals:
             self.players[indx].set_real()
 
-    # Randomly select n individuals to become fake news
-    def add_n_fakes(self, n):
+    def add_fakenews_nodes(self, n: int):
+        """Randomly select n individuals to become fake news"""
         # List of indices to become fakes
         fakes = []
         while len(fakes) < n:
@@ -682,13 +683,13 @@ class Population:
         for indx in fakes:
             self.players[indx].set_fake()
 
-    # Takes a list of indicies and sets each of those players to fact-checker
-    def add_list_facts(self, indxs):
+    def set_factchecker_nodes(self, indxs: List[int]):
+        """Takes a list of indicies and sets each of those players to fact-checker"""
         for indx in indxs:
             self.players[indx].set_factcheck()
 
-    # Makes specific players fact-checkers with given probability p
-    def add_list_facts_imperfect(self, indxs, p):
+    def set_factchecker_nodes_randomly(self, indxs: List[int], p: int):
+        """Makes specific players fact-checkers with given probability"""
         for indx in indxs:
             if rand.random() < p:
                 self.players[indx].set_factcheck()
@@ -697,32 +698,36 @@ class Population:
     # Data collection for the population
     #########################################
 
-    # Count how many members of the population are sharing real news
-    def count_reals(self):
+    def get_total_realnews_count(self) -> int:
+        """Count the number of members in the population who are sharing real news."""
         count = 0
         for indx in range(self.pop_size):
             if self.players[indx].real:
                 count += 1
         return count
 
-    # Count how many members of the population are sharing fake news
-    def count_fakes(self):
+    def get_total_fakenews_count(self) -> int:
+        """Count the number of members in the population who are sharing fake news."""
         count = 0
         for indx in range(self.pop_size):
             if self.players[indx].fake:
                 count += 1
         return count
 
-    # Count how many members of the population are fact-checking
-    def count_factchecks(self):
+    def get_total_factchecker_count(self):
+        """Count the number of members in the population who are fact-checking."""
         count = 0
         for indx in range(self.pop_size):
             if self.players[indx].factcheck:
                 count += 1
         return count
 
-    # Count how many member of the population are playing each strategy
-    def strategy_count(self):
+    def count_all_strategies(self) -> List[int]:
+        """Count the number of members in the population playing each strategy.
+
+        Returns:
+            [real news, fake news, fact-checking].
+        """
         count_reals = 0
         count_fakes = 0
         count_factchecks = 0
@@ -737,8 +742,13 @@ class Population:
                 print("Strategy Counter Error")
         return [count_reals, count_fakes, count_factchecks]
 
-    # Create a list with True in every index that is sharing real news
-    def reals_list(self):
+    def get_realnews_list(self):
+        """Create a list indicating which members of the population are sharing real news.
+
+        Returns:
+            A list of boolean values where True indicates that the member at
+            that index is sharing real news.
+        """
         reals_list = [False] * self.pop_size
         for indx in range(self.pop_size):
             if self.players[indx].real:

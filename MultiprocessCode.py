@@ -60,8 +60,8 @@ def run_simulations(params):
         pop = Population("smallworld", pop_size=n, c=c, p=p)
 
         # Create initial strategies
-        pop.preset_random()
-        pop.add_n_factcheckers(factcheckers)
+        pop.randomize_all_nodes()
+        pop.add_factchecker_nodes(factcheckers)
 
         ###################################
         # Run the simulation
@@ -70,7 +70,7 @@ def run_simulations(params):
         # Initialization
         oldlist = [True] * pop.pop_size
         olderlist = [True] * pop.pop_size
-        newlist = pop.reals_list()
+        newlist = pop.get_realnews_list()
         t = 0
         steady = False
         count = 0
@@ -85,8 +85,8 @@ def run_simulations(params):
 
             olderlist = oldlist
             oldlist = newlist
-            newlist = pop.reals_list()
-            reals = pop.count_reals()
+            newlist = pop.get_realnews_list()
+            reals = pop.get_total_realnews_count()
 
             # Detect if a strategy has completely fixated
             if reals == pop.pop_size - factcheckers:
@@ -130,7 +130,7 @@ def run_simulations(params):
                 t -= psdetection
                 # print('The system has reached a periodic loop')
                 pop.update_step()
-                reals += pop.count_reals()
+                reals += pop.get_total_realnews_count()
                 if reals >= pop.pop_size - factcheckers:
                     # print('The real news strategy has more players')
                     real_fixations += 1

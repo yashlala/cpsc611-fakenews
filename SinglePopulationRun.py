@@ -53,8 +53,8 @@ stabilization_time = 20
 pop = Population("random", pop_size=20, p=0.4)
 
 # Create initial strategies
-pop.preset_random()
-pop.add_n_factcheckers(1)
+pop.randomize_all_nodes()
+pop.add_factchecker_nodes(1)
 
 # Build your graph
 graph = nx.from_pandas_edgelist(pop.edgelist, "lowindx", "highindx")
@@ -81,7 +81,7 @@ plt.savefig("initial-g.png", dpi=600)
 # Initialization
 oldlist = [True] * pop.pop_size
 olderlist = [True] * pop.pop_size
-newlist = pop.reals_list()
+newlist = pop.get_realnews_list()
 
 # increments once per loop.
 simulation_time = 0
@@ -101,8 +101,8 @@ while not simulation_is_steady_state:
 
     olderlist = oldlist
     oldlist = newlist
-    newlist = pop.reals_list()
-    reals = pop.count_reals()
+    newlist = pop.get_realnews_list()
+    reals = pop.get_total_realnews_count()
 
     # Detect if a strategy has completely fixated
     if reals == pop.pop_size - fcs:
@@ -135,7 +135,7 @@ while not simulation_is_steady_state:
     if periodic_count == stabilization_time:
         print("The system has reached a periodic loop")
         pop.update_step()
-        reals += pop.count_reals()
+        reals += pop.get_total_realnews_count()
         if reals >= pop.pop_size - fcs:
             print("The real news strategy has more players")
         else:

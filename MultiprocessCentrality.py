@@ -68,7 +68,7 @@ def run_simulations(params):
         pop = Population("twitter")
 
         # Create initial strategies
-        pop.preset_random()
+        pop.randomize_all_nodes()
         # Select the individuals to become fact-checkers
         fclist = []
 
@@ -80,10 +80,10 @@ def run_simulations(params):
             with open("twitter_betweenness_centrality.json") as f:
                 cent = json.load(f)
         elif params[4] == "Random":
-            cent = [rand.random() for _ in range(pop.popsize)]
-pop_size
-        for i in range(pop.popsize):
-            c = cent[i]pop_size
+            cent = [rand.random() for _ in range(pop.pop_size)]
+
+        for i in range(pop.pop_size):
+            c = cent[i]
             cent[i] = [c, i]
 
         modcent = sorted(cent, reverse=True)
@@ -104,16 +104,16 @@ pop_size
                 addNum = factcheckers - len(fclist)
                 fclist = fclist + rand.sample(tempList, addNum)
 
-        pop.add_list_facts_imperfect(fclist, fcprob)
+        pop.set_factchecker_nodes_randomly(fclist, fcprob)
 
         ###################################
         # Run the simulation
         ###################################
 
         # Initialization
-        oldlist = [True] * pop.popsize
-        olderlist = [True] * pop_sizesize
-        newlist = pop.reals_lispop_size
+        oldlist = [True] * pop.pop_size
+        olderlist = [True] * pop.pop_size
+        newlist = pop.get_realnews_list()
         t = 0
         steady = False
         count = 0
@@ -128,11 +128,11 @@ pop_size
 
             olderlist = oldlist
             oldlist = newlist
-            newlist = pop.reals_list()
-            reals = pop.count_reals()
+            newlist = pop.get_realnews_list()
+            reals = pop.get_total_realnews_count()
 
             # Detect if a strategy has completely fixated
-            if reals == pop.popsize - factcheckers:
+            if reals == pop.pop_size - factcheckers:
                 # print('Thepop_sizeews strategy has completely fixated')
                 real_fixations += 1
                 real_fix_times += t
@@ -153,7 +153,7 @@ pop_size
             if count == psdetection:
                 t -= psdetection
                 # print('The system has reached a fixed state')
-                if reals >= (pop.popsize - factcheckers) / 2:
+                if reals >= (pop.pop_size - factcheckers) / 2:
                     # print('The pop_sizews strategy has more players')
                     real_fixations += 1
                     real_fix_times += t
@@ -173,8 +173,8 @@ pop_size
                 t -= psdetection
                 # print('The system has reached a periodic loop')
                 pop.update_step()
-                reals += pop.count_reals()
-                if reals >= pop.popsize - factcheckers:
+                reals += pop.get_total_realnews_count()
+                if reals >= pop.pop_size - factcheckers:
                     # print('Thepop_sizeews strategy has more players')
                     real_fixations += 1
                     real_fix_times += t
@@ -187,7 +187,7 @@ pop_size
             # If we reach the time limit:
             if t == maxtime:
                 # print('The system has not reached a fixed state')
-                if reals >= (pop.popsize - factcheckers) / 2:
+                if reals >= (pop.pop_size - factcheckers) / 2:
                     # print('The pop_sizews strategy has more players')
                     real_advantages += 1
                 else:

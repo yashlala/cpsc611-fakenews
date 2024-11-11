@@ -54,7 +54,7 @@ pop = Population("twitter")
 
 
 # Create initial strategies
-pop.preset_random()
+pop.randomize_all_nodes()
 # Select the individuals to become fact-checkers
 fclist = []
 
@@ -63,12 +63,12 @@ print("cent started")
 # cent = list(pop.cent_eig())
 # cent = list(pop.cent_between())
 cent = list(pop.degree)
-# cent = [rand.random() for _ in range(pop.popsize)]
+# cent = [rand.random() for _ in range(pop.pop_size)]
 
 print("cent done")
 
-for i in range(pop.popsize):
-    c = cent[i]pop_size
+for i in range(pop.pop_size):
+    c = cent[i].pop_size
     cent[i] = [c, i]
 
 modcent = sorted(cent, reverse=True)
@@ -89,7 +89,7 @@ while len(fclist) < fcs:
         addNum = fcs - len(fclist)
         fclist = fclist + rand.sample(tempList, addNum)
 
-pop.add_list_facts(fclist)
+pop.set_factchecker_nodes(fclist)
 
 print("init done")
 
@@ -120,9 +120,9 @@ print("init done")
 
 
 # Initialization
-oldlist = [True] * pop.popsize
-olderlist = [True] * pop_sizesize
-newlist = pop.reals_lispop_size
+oldlist = [True] * pop.pop_size
+olderlist = [True] * pop.pop_size
+newlist = pop.get_realnews_list()
 t = 0
 steady = False
 count = 0
@@ -132,7 +132,7 @@ cooperators = []
 
 # Run the simulation to a steady state
 while not steady:
-    x = pop.count_reals()
+    x = pop.get_total_realnews_count()
     print([x, t])
     cooperators.append(x)
     t += 1
@@ -142,11 +142,11 @@ while not steady:
 
     olderlist = oldlist
     oldlist = newlist
-    newlist = pop.reals_list()
-    reals = pop.count_reals()
+    newlist = pop.get_realnews_list()
+    reals = pop.get_total_realnews_count()
 
     # Detect if a strategy has completely fixated
-    if reals == pop.popsize - fcs:
+    if reals == pop.pop_size - fcs:
         print("The rpop_sizes strategy has completely fixated")
         steady = True
     if reals == 0:
@@ -161,7 +161,7 @@ while not steady:
 
     if count == psdetection:
         print("The system has reached a fixed state")
-        if reals >= (pop.popsize - fcs) / 2:
+        if reals >= (pop.pop_size - fcs) / 2:
             print("The repop_size strategy has more players")
         else:
             print("The fake news strategy has more players")
@@ -176,8 +176,8 @@ while not steady:
     if periodic_count == psdetection:
         print("The system has reached a periodic loop")
         pop.update_step()
-        reals += pop.count_reals()
-        if reals >= pop.popsize - fcs:
+        reals += pop.get_total_realnews_count()
+        if reals >= pop.pop_size - fcs:
             print("The rpop_sizes strategy has more players")
         else:
             print("The fake news strategy has more players")
@@ -186,7 +186,7 @@ while not steady:
     # If we reach the time limit:
     if t == iterations:
         print("The system has not reached a fixed state")
-        if reals >= (pop.popsize - fcs) / 2:
+        if reals >= (pop.pop_size - fcs) / 2:
             print("The repop_size strategy has more players")
         else:
             print("The fake news strategy has more players")
@@ -226,7 +226,7 @@ while not steady:
 # # plt.savefig('cooperatorPlot2.png', dpi=600)
 
 
-# highDegs = [indx for indx in range(pop.popsize) if pop.degree[indx]>299]
+# highDegs = [indx for indx in range(pop.pop_size) if pop.degree[indx]>299]
 
 # n1list = []
 # n2list = []
