@@ -485,12 +485,23 @@ class Population:
                 factcheck_neighbors += 1
 
         return factcheck_neighbors
+    
+    # Returns the number of neighbors of [indx] playing misinformer
+    def count_misinfor_neighbors(self, indx):
+        misinfor_neighbors = 0
+
+        for nindx in self.adj_list[indx]:
+            if self.players[nindx].misinfor:
+                misinfor_neighbors += 1
+
+        return misinfor_neighbors
 
     # Returns the number of neighbors of [indx] playing each strategy
     def count_strategy_neighbors(self, indx):
         real_neighbors = 0
         fake_neighbors = 0
         factcheck_neighbors = 0
+        misinfor_neighbors = 0
 
         for nindx in self.adj_list[indx]:
             if self.players[nindx].real:
@@ -499,15 +510,17 @@ class Population:
                 fake_neighbors += 1
             elif self.players[nindx].factcheck:
                 factcheck_neighbors += 1
+            elif self.players[nindx].misinfor:
+                misinfor_neighbors += 1
             else:
                 print("Strategy Count Error")
 
-        return [real_neighbors, fake_neighbors, factcheck_neighbors]
+        return [real_neighbors, fake_neighbors, factcheck_neighbors, misinfor_neighbors]
 
     # Returns the payoff of [indx]
     def calculate_payoff(self, indx):
         payoff = 0
-        [reals, fakes, factchecks] = self.count_strategy_neighbors(indx)
+        [reals, fakes, factchecks, misinfors] = self.count_strategy_neighbors(indx)
 
         # if [indx] is real
         if self.players[indx].real:
@@ -515,31 +528,45 @@ class Population:
             payoff += fakes * self.pop_params.payoff[1]
             if self.pop_params.accuracy == 1:
                 payoff += factchecks * self.pop_params.payoff[2]
+                payoff += misinfors * self.pop_params.payoff[3]
             else:
                 for i in range(factchecks):
                     r = rand.random()
                     if r <= self.pop_params.accuracy:
                         payoff += self.pop_params.payoff[2]
                     else:
-                        payoff += self.pop_params.payoff[5]
+                        payoff += self.pop_params.payoff[6]
+                for i in range(misinfors):
+                    r = rand.random()
+                    if r <= self.pop_params.accuracy:
+                        payoff += self.pop_params.payoff[3]
+                    else:
+                        payoff += self.pop_params.payoff[7]
 
         # if [indx] is fake
         elif self.players[indx].fake:
-            payoff += reals * self.pop_params.payoff[3]
-            payoff += fakes * self.pop_params.payoff[4]
+            payoff += reals * self.pop_params.payoff[4]
+            payoff += fakes * self.pop_params.payoff[5]
             if self.pop_params.accuracy == 1:
-                payoff += factchecks * self.pop_params.payoff[5]
+                payoff += factchecks * self.pop_params.payoff[6]
+                payoff += misinfors * self.pop_params.payoff[7]
             else:
                 for i in range(factchecks):
                     r = rand.random()
                     if r <= self.pop_params.accuracy:
-                        payoff += self.pop_params.payoff[5]
+                        payoff += self.pop_params.payoff[6]
                     else:
                         payoff += self.pop_params.payoff[2]
+                for i in range(misinfors):
+                    r = rand.random()
+                    if r <= self.pop_params.accuracy:
+                        payoff += self.pop_params.payoff[7]
+                    else:
+                        payoff += self.pop_params.payoff[3]
 
         # test if [indx] is not a fact-checker
         else:
-            if not self.players[indx].factcheck:
+            if (not self.players[indx].factcheck and not self.players[indx].misinfor):
                 print("Payoff Calculation Error")
 
         return payoff
@@ -564,29 +591,42 @@ class Population:
 
         # Update each player
         for indx in range(self.pop_size):
-            if not self.players[indx].factcheck:
+            if (not self.players[indx].factcheck and not self.players[indx].misinfor):
                 # Get list of all non-fact-checker neighbors
                 neighbors = []
+                fcs = 0
+                mis = 0
                 for nindx in self.adj_list[indx]:
-                    if not self.players[nindx].factcheck:
+                    if (not self.players[nindx].factcheck and not self.players[nindx].misinfor):
                         neighbors.append(nindx)
+                    elif self.players[nindx].factcheck:
+                        fcs += 1
+                    else:
+                        mis += 1
 
                 # Get the total fitness of neighbors
                 totalfitness = 0
                 cumulative_fit = []
                 for nindx in neighbors:
+                    # The more fact checkers neighboring, the more likely for a node to become real
+                    # The more misinformers neighboring, the more likely for a node to become fake
+                    if (self.players[nindx].real):
+                        payoffs[nindx] += fcs * self.pop_params.payoff[8]
+                        payoffs[nindx] -= mis * self.pop_params.payoff[9]
+                    if (self.players[nindx].fake):
+                        payoffs[nindx] += mis * self.pop_params.payoff[9]
+                        payoffs[nindx] -= fcs * self.pop_params.payoff[8]
                     pipay = self.pop_params.selection * payoffs[nindx]
                     totalfitness += math.exp(pipay)
                     cumulative_fit.append(totalfitness)
 
-                # Select neighbor to copy
                 choice = -1
                 r = rand.random() * totalfitness
                 for i in range(len(neighbors)):
                     if cumulative_fit[i] > r:
                         choice = i
                         break
-
+                    
                 # Error Check
                 if choice == -1 and neighbors:
                     print("Update Error")
@@ -595,18 +635,24 @@ class Population:
                     print(totalfitness)
                     print(cumulative_fit)
                     print(r)
-
-                # Find neighbor and strategy
-                if neighbors:
-                    chosen_neighbor = neighbors[choice]
+                
+                # If no neighbors that are neither fact checker or misinformer, become real or fake depending on sole neighbor
+                if choice == -1 and not neighbors:
+                    if fcs > mis:
+                        update_list[indx] = True
+                    else:
+                        update_list[indx] = False
                 else:
-                    chosen_neighbor = indx
-
-                update_list[indx] = self.players[chosen_neighbor].real
+                    # Find neighbor and strategy
+                    if neighbors:
+                        chosen_neighbor = neighbors[choice]
+                    else:
+                        chosen_neighbor = indx
+                    update_list[indx] = self.players[chosen_neighbor].real
 
         # Update player strategies with update_list
         for indx in range(self.pop_size):
-            if not self.players[indx].factcheck:
+            if (not self.players[indx].factcheck and not self.players[indx].misinfor):
                 if update_list[indx]:
                     if self.players[indx].fake:
                         self.players[indx].new = True
@@ -651,11 +697,24 @@ class Population:
         while len(factcheckers) < n:
             indx = rand.randint(0, self.pop_size - 1)
             if not indx in factcheckers:
-                if not self.players[indx].factcheck:
+                if (not self.players[indx].factcheck and not self.players[indx].misinfor):
                     factcheckers.append(indx)
 
         for indx in factcheckers:
             self.players[indx].set_factcheck()
+            
+    def add_misinfor_nodes(self, n: int):
+        """Randomly select `n` individuals to become misinformers"""
+        # List of indices to become misinformers
+        misinfors = []
+        while len(misinfors) < n:
+            indx = rand.randint(0, self.pop_size - 1)
+            if not indx in misinfors:
+                if (not self.players[indx].factcheck and not self.players[indx].misinfor):
+                    misinfors.append(indx)
+
+        for indx in misinfors:
+            self.players[indx].set_misinfor()
 
     def add_realnews_nodes(self, n: int):
         """Randomly select n individuals to become real news"""
@@ -693,6 +752,17 @@ class Population:
         for indx in indxs:
             if rand.random() < p:
                 self.players[indx].set_factcheck()
+                
+    def set_misinfor_nodes(self, indxs: List[int]):
+        """Takes a list of indicies and sets each of those players to misinformer"""
+        for indx in indxs:
+            self.players[indx].set_misinfor()
+    
+    def set_misinfor_nodes_randomly(self, indxs: List[int], p: int):
+        """Makes specific players misinformers with given probability"""
+        for indx in indxs:
+            if rand.random() < p:
+                self.players[indx].set_misinfor()
 
     #########################################
     # Data collection for the population
@@ -721,6 +791,14 @@ class Population:
             if self.players[indx].factcheck:
                 count += 1
         return count
+    
+    def get_total_misinfor_count(self):
+        """Count the number of members in the population who are misinforming."""
+        count = 0
+        for indx in range(self.pop_size):
+            if self.players[indx].misinfor:
+                count += 1
+        return count
 
     def count_all_strategies(self) -> List[int]:
         """Count the number of members in the population playing each strategy.
@@ -731,6 +809,7 @@ class Population:
         count_reals = 0
         count_fakes = 0
         count_factchecks = 0
+        count_misinfors = 0
         for indx in range(self.pop_size):
             if self.players[indx].real:
                 count_reals += 1
@@ -738,9 +817,11 @@ class Population:
                 count_fakes += 1
             elif self.players[indx].factcheck:
                 count_factchecks += 1
+            elif self.players[indx].misinfor:
+                count_misinfors += 1
             else:
                 print("Strategy Counter Error")
-        return [count_reals, count_fakes, count_factchecks]
+        return [count_reals, count_fakes, count_factchecks, count_misinfors]
 
     def get_realnews_list(self):
         """Create a list indicating which members of the population are sharing real news.
@@ -765,9 +846,9 @@ class Population:
         probs = [0] * max(self.degree)
 
         for indx in range(self.pop_size):
-            if not self.players[indx].factcheck:
+            if (not self.players[indx].factcheck and not self.players[indx].misinfor):
                 for nindx in range(self.pop_size):
-                    if not self.players[nindx].factcheck and indx != nindx:
+                    if (not self.players[nindx].factcheck and not self.players[nindx].misinfor and indx != nindx):
                         cns = self.common_neighbors(indx, nindx)
                         if self.players[indx].real == self.players[nindx].real:
                             same[cns] += 1
@@ -786,9 +867,9 @@ class Population:
         dif = 0
 
         for indx in range(self.pop_size):
-            if not self.players[indx].factcheck:
+            if (not self.players[indx].factcheck and not self.players[indx].misinfor):
                 for nindx in range(self.pop_size):
-                    if not self.players[nindx].factcheck and indx != nindx:
+                    if (not self.players[nindx].factcheck and not self.players[indx].misinfor and indx != nindx):
                         if self.players[indx].real == self.players[nindx].real:
                             same += 1
                         else:

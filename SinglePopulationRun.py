@@ -5,6 +5,7 @@
 ########################################################
 
 # import multiprocessing
+import os
 import networkx as nx
 import matplotlib.pyplot as plt
 from PopulationClass import Population
@@ -38,6 +39,7 @@ p = 0
 
 # All Population Structures
 fcs = 1
+mis = 1
 max_simulation_time = 100
 
 # y: if the system hasn't changed for `stabilization_time` timesteps,
@@ -50,11 +52,12 @@ stabilization_time = 20
 ###################################
 
 
-pop = Population("random", pop_size=20, p=0.4)
+pop = Population("random", pop_size=30, p=0.2)
 
 # Create initial strategies
 pop.randomize_all_nodes()
 pop.add_factchecker_nodes(1)
+pop.add_misinfor_nodes(1)
 
 # Build your graph
 graph = nx.from_pandas_edgelist(pop.edgelist, "lowindx", "highindx")
@@ -67,8 +70,10 @@ for node in graph:
         color_map.append((0.0, 0.0, 0.8))
     elif pop.players[node].fake:
         color_map.append((0.8, 0.0, 0.0))
-    else:
+    elif pop.players[node].factcheck:
         color_map.append((0.0, 0.8, 0.0))
+    else:
+        color_map.append((0.75, 0.15, 0.85))
 
 plt.subplots()
 nx.draw(graph, pos, with_labels=True, node_color=color_map)
@@ -91,13 +96,35 @@ periodic_count = 0
 
 components = []
 
+# Delete files starting with "step-"
+for file in os.listdir():
+    if file.startswith("step-"):
+        os.remove(file)
+
 # Run the simulation to a steady state
 while not simulation_is_steady_state:
+    
     components.append(pop.real_components())
 
     simulation_time += 1
 
     pop.update_step()
+    
+    # Visualize the population in every step
+    color_map = []
+    for node in graph:
+        if pop.players[node].real:
+            color_map.append((0.0, 0.0, 0.8))
+        elif pop.players[node].fake:
+            color_map.append((0.8, 0.0, 0.0))
+        elif pop.players[node].factcheck:
+            color_map.append((0.0, 0.8, 0.0))
+        else:
+            color_map.append((0.75, 0.15, 0.85))
+    
+    plt.subplots()
+    nx.draw(graph, pos, with_labels=True, node_color=color_map)
+    plt.savefig(f"step-{simulation_time}.png", dpi=600)
 
     olderlist = oldlist
     oldlist = newlist
@@ -105,7 +132,7 @@ while not simulation_is_steady_state:
     reals = pop.get_total_realnews_count()
 
     # Detect if a strategy has completely fixated
-    if reals == pop.pop_size - fcs:
+    if reals == pop.pop_size - fcs - mis:
         print("The real news strategy has completely fixated")
         break
     if reals == 0:
@@ -120,7 +147,7 @@ while not simulation_is_steady_state:
 
     if count == stabilization_time:
         print("The system has reached a fixed state")
-        if reals >= (pop.pop_size - fcs) / 2:
+        if reals >= (pop.pop_size - fcs - mis) / 2:
             print("The real news strategy has more players")
         else:
             print("The fake news strategy has more players")
@@ -136,7 +163,7 @@ while not simulation_is_steady_state:
         print("The system has reached a periodic loop")
         pop.update_step()
         reals += pop.get_total_realnews_count()
-        if reals >= pop.pop_size - fcs:
+        if reals >= pop.pop_size - fcs - mis:
             print("The real news strategy has more players")
         else:
             print("The fake news strategy has more players")
@@ -145,7 +172,7 @@ while not simulation_is_steady_state:
     # If we reach the time limit:
     if simulation_time == max_simulation_time:
         print("The system has not reached a fixed state")
-        if reals >= (pop.pop_size - fcs) / 2:
+        if reals >= (pop.pop_size - fcs - mis) / 2:
             print("The real news strategy has more players")
         else:
             print("The fake news strategy has more players")
@@ -162,8 +189,10 @@ for node in graph:
         color_map.append((0.0, 0.0, 0.8))
     elif pop.players[node].fake:
         color_map.append((0.8, 0.0, 0.0))
-    else:
+    elif pop.players[node].factcheck:
         color_map.append((0.0, 0.8, 0.0))
+    else:
+        color_map.append((0.75, 0.15, 0.85))
 
 plt.subplots()
 nx.draw(graph, pos, with_labels=True, node_color=color_map)

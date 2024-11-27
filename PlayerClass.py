@@ -11,6 +11,7 @@ class Player:
         self.real = True
         self.fake = False
         self.factcheck = False
+        self.misinfor = False
         # No players start having just changed strategy
         self.new = False
 
@@ -20,13 +21,22 @@ class Player:
         self.real = True
         self.fake = False
         self.factcheck = False
+        self.misinfor = False
 
     def set_fake(self):
         self.real = False
         self.fake = True
         self.factcheck = False
+        self.misinfor = False
 
     def set_factcheck(self):
         self.real = False
         self.fake = False
         self.factcheck = True
+        self.misinfor = False
+        
+    def set_misinfor(self):
+        self.real = False
+        self.fake = False
+        self.factcheck = False
+        self.misinfor = True
