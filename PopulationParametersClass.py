@@ -24,6 +24,7 @@ class PopulationParameters:
         # 7: Fake news with misinformation interaction
         # 8: Fact-checker boost to real news nodes
         # 9: Misinformation boost to fake news nodes
+        # ____________  0    1    2     3    4    5     6    7    8    9   
         self.payoff = [1.0, 0.0, 1.0, -3.0, 0.0, 1.0, -2.0, 1.0, 0.5, 0.5, 0.0, 0.0, 0.0]
         self.accuracy = 1.0
         self.selection = 5.0
