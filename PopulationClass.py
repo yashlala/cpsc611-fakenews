@@ -33,7 +33,14 @@ class Population:
             - `pop_size`: the number of individuals in the population.
             - `grid_width`: only used for 'grid' topology.
             - `grid_height`: only used for 'grid' topology.
-            - `p`: for 'grid' toplogy: probability of adding additional edges.
+            - `p`: for 'grid' and 'hairy-tree' topology: probability of adding
+                   additional edges.
+
+            - `tree_depth`: for `hairy-tree` topology only. Describes the depth
+                            of the tree :P
+            - `tree_fanout`: for `hairy-tree` topology only. Fanout = 3 =>
+                             each non-leaf node in the tree will have
+                             3 children.
 
             - `c`: for "scalefree" topology only. Sets "starting degree".
             - `node_degree`: only applies to 'regular' and 'grid' topology.
@@ -53,8 +60,25 @@ class Population:
             self._init_smallworld_topology(pop_size, neighbors=c, p=p)
         elif topology == "twitter":
             self._init_twitter_topology()
+        elif topology == "hairy-tree":
+            self._init_hairy_tree_topology(tree_depth, tree_fanout,
+                                           hair_probability=p)
         else:
             raise ValueError("Unacceptable network topology")
+
+
+
+    def _init_hairy_tree_topology(self, tree_depth, tree_fanout,
+                                  hair_probability):
+        """Creates an tree, with randomly added edges ("hairs")
+
+        Args:
+            - `tree_depth`: Describes the depth of the tree.
+            - `tree_fanout`: Fanout = 3 => each non-leaf node in the tree will have
+                             3 children.
+            - `hair_probability`: we connect random nodes with probability p.
+        """
+        raise Exception("Yash hasn't implemented this yet.")
 
     def _init_grid_topology(self, grid_width, grid_height, p, k):
         """Creates an height by width population on a rectangular grid.
