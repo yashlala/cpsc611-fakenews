@@ -13,7 +13,7 @@ from scipy.sparse.linalg import eigsh
 from typing import List
 
 from PlayerClass import Player
-from PopulationParametersClass import PopulationParameters
+from PopulationParameters import PopulationParameters
 
 
 class Population:

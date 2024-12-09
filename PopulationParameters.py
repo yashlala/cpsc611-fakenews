@@ -14,17 +14,19 @@ class PopulationParameters:
         self.NEW_REAL_COLOR = [0.0, 0.5, 1.0]
         self.NEW_FAKE_COLOR = [1.0, 0.5, 0.0]
         # The payoff matrix for the game, vectorized by rows
-        # 0: Real news with real news interaction
-        # 1: Real news with fake news interaction
-        # 2: Real news with fact-checker interaction
-        # 3: Real news with misinformation interaction
-        # 4: Fake news with real news interaction
-        # 5: Fake news with fake news interaction
-        # 6: Fake news with fact-checker interaction
-        # 7: Fake news with misinformation interaction
-        # 8: Fact-checker boost to real news nodes
-        # 9: Misinformation boost to fake news nodes
-        # ____________  0    1    2     3    4    5     6    7    8    9   
-        self.payoff = [1.0, 0.0, 1.0, -3.0, 0.0, 1.0, -2.0, 1.0, 0.5, 0.5, 0.0, 0.0, 0.0]
+        self.payoff = [
+                1.0,   # 0: Real news -> real news interaction
+                0.0,   # 1: Real news -> fake news interaction
+                1.0,   # 2: Real news -> fact-checker interaction
+                -3.0,  # 3: Real news -> misinformation interaction
+                0.0,   # 4: Fake news -> real news interaction
+                1.0,   # 5: Fake news -> fake news interaction
+                -2.0,  # 6: Fake news -> fact-checker interaction
+                1.0,   # 7: Fake news -> misinformation interaction
+                0.5,   # 8: Fact-checker boost to real news nodes
+                0.5,   # 9: Misinformation boost to fake news nodes
+                0.0,
+                0.0,
+                0.0]
         self.accuracy = 1.0
         self.selection = 5.0
