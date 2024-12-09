@@ -26,6 +26,7 @@ class Population:
         grid_width=10,
         grid_height=10,
         node_degree=8,
+        pop_params=None
     ):
         """Initialize a population.
 
@@ -40,6 +41,11 @@ class Population:
 
         TODO combine C and node_degree.
         """
+
+        if pop_params is None:
+            self.pop_params = PopulationParameters()
+        else:
+            self.pop_params = pop_params
 
         if topology == "grid":
             self._init_grid_topology(grid_width, grid_height, p, node_degree)
@@ -66,7 +72,6 @@ class Population:
         if not (k == 4 or k == 8):
             raise ValueError("Degree must be 4 or 8")
         self.pop_size = grid_width * grid_height
-        self.pop_params = PopulationParameters()
         self.players = []
         self.adj_list = []
 
@@ -157,7 +162,6 @@ class Population:
         # probability p connecting any two vertices
         self.pop_size = pop_size
         self.edge_prob = p
-        self.pop_params = PopulationParameters()
 
         self.players = []
         self.adj_list = []
@@ -204,7 +208,6 @@ class Population:
 
         self.pop_size = pop_size
         self.newdegree = starting_degree
-        self.pop_params = PopulationParameters()
 
         self.players = []
         self.adj_list = []
@@ -282,7 +285,6 @@ class Population:
         # Each individual has k neighbors
         self.pop_size = pop_size
         self.degree = [num_neighbors] * self.pop_size
-        self.pop_params = PopulationParameters()
 
         self.players = []
         self.adj_list = []
@@ -351,7 +353,6 @@ class Population:
         self.pop_size = pop_size
         self.circleneighbors = neighbors
         self.shortcutprob = p
-        self.pop_params = PopulationParameters()
 
         self.players = []
         self.adj_list = []
@@ -416,7 +417,6 @@ class Population:
 
     def _init_twitter_topology(self):
         self.pop_size = 404719
-        self.pop_params = PopulationParameters()
         self.edgeList = np.loadtxt("soc-twitter-follows2.mtx", dtype=int)
 
         self.players = []
