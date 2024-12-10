@@ -44,7 +44,7 @@ desired.
   population's state, behavior, etc. Used in all prior files
 - [PlayerClass.py](/PlayerClass.py): A class containing the behavior of an
   individual in the simulated population. Used in PopulationClass.py
-- [PopulationParametersClass.py](/PopulationParametersClass.py): A class
+- [PopulationParameters.py](/PopulationParameters.py): A class
   containing payoff values for the game. Used in PopulationClass.py
 - [twitterNetwork.py](/twitterNetwork.py): A file dedicated to computing the
   betweenness centrality of the Twitter network. Input is

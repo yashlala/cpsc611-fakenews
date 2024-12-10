@@ -13,29 +13,6 @@ from PopulationClass import Population
 ###################################
 # Parameters to adjust
 ###################################
-# Random Population
-# n = 1000
-# p = 0.01
-
-# K Regular Population
-# n = 900
-# k = 5
-
-# SW Population
-# n = 60
-# c = 2
-# p = 1
-
-# Scale Free Population
-# n = 200
-# c = 5
-
-# Grid Population
-m1 = 10
-m2 = 10
-n = m1 * m2
-k = 8
-p = 0
 
 # All Population Structures
 fcs = 1
@@ -52,12 +29,12 @@ stabilization_time = 20
 ###################################
 
 
-pop = Population("random", pop_size=30, p=0.2)
+pop = Population("smallworld", pop_size=40, c=2, p=0.2)
 
 # Create initial strategies
 pop.randomize_all_nodes()
-pop.add_factchecker_nodes(1)
-pop.add_misinfor_nodes(1)
+pop.add_factchecker_nodes(2)
+pop.add_misinfor_nodes(2)
 
 # Build your graph
 graph = nx.from_pandas_edgelist(pop.edgelist, "lowindx", "highindx")

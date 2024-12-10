@@ -7,13 +7,14 @@ import pandas as pd
 import random as rand
 import numpy as np
 import math
+from collections import deque
 from scipy.special import comb
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import eigsh
 from typing import List
 
 from PlayerClass import Player
-from PopulationParametersClass import PopulationParameters
+from PopulationParameters import PopulationParameters
 
 
 class Population:
@@ -26,6 +27,7 @@ class Population:
         grid_width=10,
         grid_height=10,
         node_degree=8,
+        pop_params=None
     ):
         """Initialize a population.
 
@@ -40,6 +42,11 @@ class Population:
 
         TODO combine C and node_degree.
         """
+
+        if pop_params is None:
+            self.pop_params = PopulationParameters()
+        else:
+            self.pop_params = pop_params
 
         if topology == "grid":
             self._init_grid_topology(grid_width, grid_height, p, node_degree)
@@ -66,7 +73,6 @@ class Population:
         if not (k == 4 or k == 8):
             raise ValueError("Degree must be 4 or 8")
         self.pop_size = grid_width * grid_height
-        self.pop_params = PopulationParameters()
         self.players = []
         self.adj_list = []
 
@@ -157,7 +163,6 @@ class Population:
         # probability p connecting any two vertices
         self.pop_size = pop_size
         self.edge_prob = p
-        self.pop_params = PopulationParameters()
 
         self.players = []
         self.adj_list = []
@@ -204,7 +209,6 @@ class Population:
 
         self.pop_size = pop_size
         self.newdegree = starting_degree
-        self.pop_params = PopulationParameters()
 
         self.players = []
         self.adj_list = []
@@ -282,7 +286,6 @@ class Population:
         # Each individual has k neighbors
         self.pop_size = pop_size
         self.degree = [num_neighbors] * self.pop_size
-        self.pop_params = PopulationParameters()
 
         self.players = []
         self.adj_list = []
@@ -351,7 +354,6 @@ class Population:
         self.pop_size = pop_size
         self.circleneighbors = neighbors
         self.shortcutprob = p
-        self.pop_params = PopulationParameters()
 
         self.players = []
         self.adj_list = []
@@ -416,7 +418,6 @@ class Population:
 
     def _init_twitter_topology(self):
         self.pop_size = 404719
-        self.pop_params = PopulationParameters()
         self.edgeList = np.loadtxt("soc-twitter-follows2.mtx", dtype=int)
 
         self.players = []
@@ -740,6 +741,31 @@ class Population:
                     fakes.append(indx)
 
         for indx in fakes:
+            self.players[indx].set_fake()
+
+    def add_contig_fakenews_nodes(self, n: int):
+        """Create a patch of `n` nodes to become misinformers"""
+        # List of indices to become misinformers
+        new_fake = []
+        bfs = deque()
+
+        def spread_to_neighbors(node):
+            if len(new_fake) >= n or node in new_fake:
+                return
+            if self.players[node].factcheck or self.players[node].misinfor:
+                return
+
+            new_fake.append(node)
+            for neighbor in self.adj_list[node]:
+                bfs.append(neighbor)
+
+            while len(bfs) > 0:
+                spread_to_neighbors(bfs.popleft())
+
+        while len(new_fake) < n:
+            spread_to_neighbors(rand.randint(0, self.pop_size - 1))
+
+        for indx in new_fake:
             self.players[indx].set_fake()
 
     def set_factchecker_nodes(self, indxs: List[int]):
