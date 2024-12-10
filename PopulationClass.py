@@ -7,6 +7,7 @@ import pandas as pd
 import random as rand
 import numpy as np
 import math
+from collections import deque
 from scipy.special import comb
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import eigsh
@@ -740,6 +741,31 @@ class Population:
                     fakes.append(indx)
 
         for indx in fakes:
+            self.players[indx].set_fake()
+
+    def add_contig_fakenews_nodes(self, n: int):
+        """Create a patch of `n` nodes to become misinformers"""
+        # List of indices to become misinformers
+        new_fake = []
+        bfs = deque()
+
+        def spread_to_neighbors(node):
+            if len(new_fake) >= n or node in new_fake:
+                return
+            if self.players[node].factcheck or self.players[node].misinfor:
+                return
+
+            new_fake.append(node)
+            for neighbor in self.adj_list[node]:
+                bfs.append(neighbor)
+
+            while len(bfs) > 0:
+                spread_to_neighbors(bfs.popleft())
+
+        while len(new_fake) < n:
+            spread_to_neighbors(rand.randint(0, self.pop_size - 1))
+
+        for indx in new_fake:
             self.players[indx].set_fake()
 
     def set_factchecker_nodes(self, indxs: List[int]):
